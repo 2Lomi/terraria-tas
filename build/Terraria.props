@@ -1,0 +1,37 @@
+<Project>
+  <!--
+    Compile-time references to the user's own Terraria install (never redistributed).
+    Imported only by projects that touch the game. Override the install location with
+    the TERRARIA_DIR environment variable or a git-ignored build/Terraria.user.props:
+
+      <Project><PropertyGroup><TerrariaDir>D:\Games\Terraria</TerrariaDir></PropertyGroup></Project>
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Terraria.user.props" Condition="Exists('$(MSBuildThisFileDirectory)Terraria.user.props')" />
+
+  <PropertyGroup>
+    <TerrariaDir Condition="'$(TerrariaDir)' == ''">$(TERRARIA_DIR)</TerrariaDir>
+    <TerrariaDir Condition="'$(TerrariaDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Terraria</TerrariaDir>
+    <TerrariaExe>$(TerrariaDir)\Terraria.exe</TerrariaExe>
+    <XnaDir>$(WINDIR)\Microsoft.NET\assembly\GAC_32</XnaDir>
+    <XnaVersionDir>v4.0_4.0.0.0__842cf8be1de50553</XnaVersionDir>
+    <!-- Terraria on Windows is a 32-bit XNA game; everything loaded into its process must be x86. -->
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Terraria" HintPath="$(TerrariaExe)" Private="false" />
+    <Reference Include="Microsoft.Xna.Framework" HintPath="$(XnaDir)\Microsoft.Xna.Framework\$(XnaVersionDir)\Microsoft.Xna.Framework.dll" Private="false" />
+    <Reference Include="Microsoft.Xna.Framework.Game" HintPath="$(XnaDir)\Microsoft.Xna.Framework.Game\$(XnaVersionDir)\Microsoft.Xna.Framework.Game.dll" Private="false" />
+    <Reference Include="Microsoft.Xna.Framework.Graphics" HintPath="$(XnaDir)\Microsoft.Xna.Framework.Graphics\$(XnaVersionDir)\Microsoft.Xna.Framework.Graphics.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="VerifyTerrariaInstall" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(TerrariaExe)')"
+           Text="Terraria.exe not found in '$(TerrariaDir)'. Set TERRARIA_DIR or create build/Terraria.user.props (see README)." />
+    <GetAssemblyIdentity AssemblyFiles="$(TerrariaExe)">
+      <Output TaskParameter="Assemblies" ItemName="_TerrariaIdentity" />
+    </GetAssemblyIdentity>
+    <Error Condition="'%(_TerrariaIdentity.Version)' != '$(TargetTerrariaVersion)'"
+           Text="Your Terraria is %(_TerrariaIdentity.Version) but this source targets $(TargetTerrariaVersion). To port the tool to a new game version, follow docs/porting.md." />
+  </Target>
+</Project>

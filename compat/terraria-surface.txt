@@ -1,0 +1,189 @@
+# Terraria members used by Terraria TAS, fingerprinted on Terraria 1.4.5.8.
+# Regenerate after porting: dotnet run --project tools/TerrariaTas.GameDiff -- surface (see docs/porting.md)
+named    -                Terraria.GameContent.Ambience.AmbienceServer::_forcedSpawns
+named    -                Terraria.GameContent.Ambience.AmbienceServer::_updatesUntilNextAttempt
+named    -                Terraria.GameContent.Drawing.TileDrawing::_grassWindCounter
+named    -                Terraria.GameContent.Drawing.TileDrawing::_isActiveAndNotPaused
+named    -                Terraria.GameContent.Drawing.TileDrawing::_rand
+named    -                Terraria.GameContent.Drawing.TileDrawing::_reverseVineRootsPositions
+named    -                Terraria.GameContent.Drawing.TileDrawing::_specialPositions
+named    -                Terraria.GameContent.Drawing.TileDrawing::_specialTileX
+named    -                Terraria.GameContent.Drawing.TileDrawing::_specialTileY
+named    -                Terraria.GameContent.Drawing.TileDrawing::_specialTilesCount
+named    -                Terraria.GameContent.Drawing.TileDrawing::_specialsCount
+named    -                Terraria.GameContent.Drawing.TileDrawing::_sunflowerWindCounter
+named    -                Terraria.GameContent.Drawing.TileDrawing::_treeWindCounter
+named    -                Terraria.GameContent.Drawing.TileDrawing::_vineRootsPositions
+named    -                Terraria.GameContent.Drawing.TileDrawing::_vineWindCounter
+named    -                Terraria.GameContent.Drawing.TileDrawing::_windGrid
+named    -                Terraria.GameInput.PlayerInput::MouseInfo
+named    -                Terraria.GameInput.PlayerInput::MouseInfoOld
+named    -                Terraria.GameInput.PlayerInput::ScrollWheelValue
+named    -                Terraria.GameInput.PlayerInput::ScrollWheelValueOld
+named    -                Terraria.Graphics.WorldSceneLayerTarget::_position
+named    -                Terraria.Lighting::NewEngine
+named    -                Terraria.Main::EverLastingTicker
+named    -                Terraria.Main::TileFrameSeed
+named    -                Terraria.Main::UnpausedUpdateSeed
+named    -                Terraria.Main::_cameraSceneMetrics
+named    -                Terraria.Main::_drawCycleCounter
+named    -                Terraria.Main::_playerSceneMetrics
+named    -                Terraria.Main::_rngs
+named    -                Terraria.Main::_usingSeparateCameraSceneMetrics
+named    -                Terraria.Main::atmo
+named    -                Terraria.Main::cloudAlpha
+named    -                Terraria.Main::ingameOptionsWindow
+named    -                Terraria.Main::itemAnimations
+named    -                Terraria.Main::keyState
+named    -                Terraria.Main::lightning
+named    -                Terraria.Main::lightningDecay
+named    -                Terraria.Main::lightningSpeed
+named    -                Terraria.Main::mapFullscreen
+named    -                Terraria.Main::maxRaining
+named    -                Terraria.Main::mouseLeftRelease
+named    -                Terraria.Main::mouseRightRelease
+named    -                Terraria.Main::oldKeyState
+named    -                Terraria.Main::playerInventory
+named    -                Terraria.Main::rand
+named    -                Terraria.Main::renderCount
+named    -                Terraria.Main::renderNow
+named    -                Terraria.Main::thunderDelay
+named    -                Terraria.Main::thunderDistance
+named    -                Terraria.Main::thunderSkipSound
+named    -                Terraria.Main::tileFrame
+named    -                Terraria.Main::tileFrameCounter
+named    -                Terraria.Main::timeForVisualEffects
+named    -                Terraria.Main::wallFrame
+named    -                Terraria.Main::wallFrameCounter
+named    -                Terraria.Main::weatherVaneBobframe
+named    -                Terraria.Main::windSpeedTarget
+named    -                Terraria.Testing.Cloning.DeepCloning::Clone
+named    -                Terraria.Utilities.UnifiedRandom::SeedArray
+named    -                Terraria.Utilities.UnifiedRandom::inext
+field    -                Terraria.Entity::position
+field    -                Terraria.Entity::velocity
+field    -                Terraria.FocusHelper::IsSelectedApplication
+field    -                Terraria.Item::stack
+field    -                Terraria.Item::type
+field    -                Terraria.Localization.LanguageManager::Instance
+field    -                Terraria.Main::AmbienceServer
+field    -                Terraria.Main::Configuration
+field    -                Terraria.Main::FrameSkipMode
+field    -                Terraria.Main::GameViewMatrix
+field    -                Terraria.Main::PlayerList
+field    -                Terraria.Main::PlayerPath
+field    -                Terraria.Main::Setting_UseReducedMaxLiquids
+field    -                Terraria.Main::SkipAssemblyLoad
+field    -                Terraria.Main::ThrottleWhenInactive
+field    -                Terraria.Main::TileFrameSeed
+field    -                Terraria.Main::TilesRenderer
+field    -                Terraria.Main::UpdateTimeAccumulator
+field    -                Terraria.Main::WorldList
+field    -                Terraria.Main::WorldPath
+field    -                Terraria.Main::autoPause
+field    -                Terraria.Main::cloudAlpha
+field    -                Terraria.Main::dayTime
+field    -                Terraria.Main::forceXMasForToday
+field    -                Terraria.Main::forceXMasForever
+field    -                Terraria.Main::gameMenu
+field    -                Terraria.Main::instance
+field    -                Terraria.Main::item
+field    -                Terraria.Main::maxRaining
+field    -                Terraria.Main::maxTilesX
+field    -                Terraria.Main::maxTilesY
+field    -                Terraria.Main::menuMode
+field    -                Terraria.Main::npc
+field    -                Terraria.Main::numClouds
+field    -                Terraria.Main::player
+field    -                Terraria.Main::projectile
+field    -                Terraria.Main::qaStyle
+field    -                Terraria.Main::rainTime
+field    -                Terraria.Main::raining
+field    -                Terraria.Main::rand
+field    -                Terraria.Main::renderCount
+field    -                Terraria.Main::renderNow
+field    -                Terraria.Main::screenPosition
+field    -                Terraria.Main::showSplash
+field    -                Terraria.Main::tile
+field    -                Terraria.Main::time
+field    -                Terraria.Main::windSpeedCurrent
+field    -                Terraria.Main::windSpeedTarget
+field    -                Terraria.Main::xMas
+field    -                Terraria.NPC::active
+field    -                Terraria.NPC::ai
+field    -                Terraria.NPC::life
+field    -                Terraria.NPC::target
+field    -                Terraria.NPC::type
+field    -                Terraria.Player::active
+field    -                Terraria.Player::gravDir
+field    -                Terraria.Player::inventory
+field    -                Terraria.Player::itemAnimation
+field    -                Terraria.Player::statLife
+field    -                Terraria.Player::statMana
+field    -                Terraria.Program::SavePath
+field    -                Terraria.Projectile::active
+field    -                Terraria.Projectile::ai
+field    -                Terraria.Projectile::timeLeft
+field    -                Terraria.Projectile::type
+field    -                Terraria.Testing.StateSnapshot::Gameplay
+field    -                Terraria.Testing.StateSnapshot::Input
+field    -                Terraria.Tile::bTileHeader
+field    -                Terraria.Tile::bTileHeader2
+field    -                Terraria.Tile::bTileHeader3
+field    -                Terraria.Tile::frameX
+field    -                Terraria.Tile::frameY
+field    -                Terraria.Tile::liquid
+field    -                Terraria.Tile::sTileHeader
+field    -                Terraria.Tile::type
+field    -                Terraria.Tile::wall
+field    -                Terraria.WorldGen::loadFailed
+patched  87708602341b29e8 System.Boolean Terraria.Main::isHalloweenDateNow()
+patched  1b7c750d960632a3 System.Int32 Terraria.Utilities.UnifiedRandom::InternalSample()
+patched  eb41b2ee2d912590 System.Void Terraria.FocusHelper::UpdateFocus(System.Boolean&)
+patched  8e6496e34c6dbec6 System.Void Terraria.IO.WorldFile::SaveWorld(System.Boolean,System.Boolean,System.Boolean)
+patched  ef419647d7e79ea5 System.Void Terraria.Main::DoUpdate_AutoSave()
+patched  4b98345756c304c9 System.Void Terraria.Main::Draw(Microsoft.Xna.Framework.GameTime)
+patched  746d391cc2ce9f35 System.Void Terraria.Main::Update(Microsoft.Xna.Framework.GameTime)
+patched  5c076635b621d2db System.Void Terraria.Main::checkXMas()
+patched  d3c88344842df12a System.Void Terraria.Map.MapHelper::SaveMap()
+patched  c9c1c34fd80a73a2 System.Void Terraria.Player::SavePlayer(Terraria.IO.PlayerFileData,System.Boolean,System.Boolean)
+patched  3b4c2697439c8d15 System.Void Terraria.Social.SocialAPI::Initialize(System.Nullable`1<Terraria.Social.SocialMode>)
+patched  451d337d34695956 System.Void Terraria.Utilities.UnifiedRandom::.ctor()
+patched  7e067b515a3f25f3 System.Void Terraria.WorldGen::playWorldCallBack(System.Object)
+mirrored 3b6b35c3045a0cbe System.Double Terraria.Utilities.UnifiedRandom::GetSampleForLargeRange()
+mirrored 1094172388b98b76 System.Double Terraria.Utilities.UnifiedRandom::NextDouble()
+mirrored d498041487224dba System.Double Terraria.Utilities.UnifiedRandom::Sample()
+mirrored 1b7c750d960632a3 System.Int32 Terraria.Utilities.UnifiedRandom::InternalSample()
+mirrored 30fa8335121052b3 System.Int32 Terraria.Utilities.UnifiedRandom::Next()
+mirrored 8f46d0d25fa017dc System.Int32 Terraria.Utilities.UnifiedRandom::Next(System.Int32)
+mirrored 161c95093f75d610 System.Int32 Terraria.Utilities.UnifiedRandom::Next(System.Int32,System.Int32)
+mirrored c1784986a2ab21fc System.Int32 Terraria.Utilities.UnifiedRandom::Peek()
+mirrored 99158e44654f6c7a System.Single Terraria.Utils::NextFloat(Terraria.Utilities.UnifiedRandom)
+mirrored 0d51c23204b61adb System.Single Terraria.Utils::NextFloat(Terraria.Utilities.UnifiedRandom,Terraria.Utilities.Terraria.Utilities.FloatRange)
+mirrored b78dedd2543d4096 System.Void Terraria.Utilities.UnifiedRandom::SetSeed(System.Int32)
+calls    1cdea0344f88924e Microsoft.Xna.Framework.Vector2 Terraria.Graphics.SpriteViewMatrix::get_RenderZoom()
+calls    1a454b738cd2c58c System.Boolean Terraria.IO.Preferences::Load()
+calls    dcb1e4db82646d2c System.Boolean Terraria.IO.Preferences::Save(System.Boolean)
+calls    b346fe9099433e7b System.Boolean Terraria.WorldItem::get_IsAir()
+calls    011e1e1e5df353cf System.Int32 Terraria.Player::get_selectedItem()
+calls    95b8f5c195d2387c System.Int32 Terraria.WorldItem::get_stack()
+calls    2cecaf93b33b1496 System.Int32 Terraria.WorldItem::get_type()
+calls    679706662d58e41f System.String Terraria.IO.FileData::get_Path()
+calls    b16b16624895b8fe System.UInt32 Terraria.Main::get_GameUpdateCount()
+calls    b08d617c5bfa3741 System.Void Terraria.GameContent.Ambience.AmbienceServer::.ctor()
+calls    no-body          System.Void Terraria.IO.FileData::SetAsActive()
+calls    51becbf5cd35b80a System.Void Terraria.IO.Preferences::Put(System.String,System.Object)
+calls    51b0d0a09dff7f66 System.Void Terraria.Lighting::set_Mode(Terraria.Graphics.Light.LightMode)
+calls    65781ee763f15319 System.Void Terraria.Localization.LanguageManager::SetLanguage(Terraria.Localization.GameCulture)
+calls    09331437139df36b System.Void Terraria.Main::LoadPlayers()
+calls    5f7a73d0ddc62dd3 System.Void Terraria.Main::LoadWorlds()
+calls    6268227dc28375d4 System.Void Terraria.Main::SelectPlayer(Terraria.IO.PlayerFileData)
+calls    a83215b767da0e7d System.Void Terraria.Program::LaunchGame(System.String[],System.Boolean)
+calls    9c193d0b18410720 System.Void Terraria.Testing.StateSnapshot::Restore()
+calls    4ffacea58129c728 System.Void Terraria.Utilities.UnifiedRandom::.ctor(System.Int32)
+calls    b78dedd2543d4096 System.Void Terraria.Utilities.UnifiedRandom::SetSeed(System.Int32)
+calls    1d52fcc7e2a553ac System.Void Terraria.WorldGen::playWorld()
+calls    1e220b4ed75ec15b Terraria.Graphics.Light.LightMode Terraria.Lighting::get_Mode()
+calls    a4cc300418f0fb7a Terraria.Localization.GameCulture Terraria.Localization.GameCulture::FromCultureName(Terraria.Localization.GameCulture/CultureName)
+calls    4fa2060cd9167553 Terraria.Player Terraria.Main::get_LocalPlayer()
+calls    c3d9f08b5b3ae9d2 Terraria.Testing.StateSnapshot Terraria.Testing.StateSnapshotDefinition::Capture()

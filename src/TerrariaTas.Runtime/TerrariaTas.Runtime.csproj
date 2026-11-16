@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The in-game TAS engine: runs inside the Terraria process and patches it with Harmony. -->
+  <Import Project="..\..\build\Terraria.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.4.3" />
+    <ProjectReference Include="..\TerrariaTas.Core\TerrariaTas.Core.csproj" />
+    <Reference Include="System.Windows.Forms" />
+    <AssemblyMetadata Include="TargetTerrariaVersion" Value="$(TargetTerrariaVersion)" />
+  </ItemGroup>
+
+</Project>

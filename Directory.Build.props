@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="build/Version.props" />
+
+  <PropertyGroup>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <Product>Terraria TAS</Product>
+    <Authors>Terraria TAS contributors</Authors>
+    <Copyright>MIT License</Copyright>
+  </PropertyGroup>
+</Project>

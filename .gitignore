@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local path override for the Terraria install (see README).
+build/Terraria.user.props
+
+# TAS working data: copies of players/worlds, configs, logs.
+TasData/

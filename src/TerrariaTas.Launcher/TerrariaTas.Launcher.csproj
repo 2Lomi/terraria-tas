@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TerrariaTas.exe: hosts the user's Terraria inside this process. Must not reference Terraria
+       types directly, because they can only be resolved after GameHost.Prepare has run. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    <AssemblyName>TerrariaTas</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TerrariaTas.Runtime\TerrariaTas.Runtime.csproj" />
+  </ItemGroup>
+
+  <!-- Terraria itself is large-address-aware; without the flag the host process (and savestates) would be capped at 2 GB. -->
+  <Target Name="SetLargeAddressAware" AfterTargets="Build">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\build\SetLargeAddressAware.ps1&quot; -Path &quot;$(TargetPath)&quot;" />
+  </Target>
+
+</Project>

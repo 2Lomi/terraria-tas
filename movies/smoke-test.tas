@@ -1,0 +1,21 @@
+# Smoke test: walk, jump, switch items and swing at the ground.
+# Copy a player and a world into the TAS data folder (Players/ and Worlds/) and put their file names below.
+Terraria: 1.4.5.8
+Player: Runner.plr
+World: Forest.wld
+Seed: 1234
+Resolution: 1280x720
+
+    30
+    90 D
+    15 D Space
+    45 D
+     1 D2
+    60 LMB @672,392
+    20 A Space
+    80 A
+     1 D1
+    40 LMB @560,360
+    30 A LMB
+    60 D Space
+    40

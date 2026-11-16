@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Game-independent logic: movie format, playback state machine, RNG models.
+       Must never reference Terraria or XNA so it can be built and tested anywhere. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TerrariaTas.Core.Tests" />
+  </ItemGroup>
+
+</Project>

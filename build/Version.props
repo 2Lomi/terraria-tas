@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    A release is named "<Terraria version>-r<revision>", e.g. 1.4.5.8-r1.
+    TargetTerrariaVersion is the single place that names the supported game build:
+    the build refuses to compile against any other Terraria.exe, and the runtime
+    refuses to start a movie on one. Read docs/porting.md before changing it.
+  -->
+  <PropertyGroup>
+    <TargetTerrariaVersion>1.4.5.8</TargetTerrariaVersion>
+    <TasRevision>0</TasRevision>
+
+    <Version>$(TargetTerrariaVersion)</Version>
+    <InformationalVersion>$(TargetTerrariaVersion)-r$(TasRevision)</InformationalVersion>
+  </PropertyGroup>
+</Project>
