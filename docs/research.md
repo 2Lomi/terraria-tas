@@ -47,6 +47,10 @@ own generator, seeded from the world seed on first use (`Main.SwapRandom`):
 `UpdatePressurePlates`, `UpdateNPCs`, `UpdateGores`, `UpdateProjectiles`, `UpdateItems`, `UpdateDust`,
 `UpdateLeashedEntities`, `UpdateFloatingText`, `UpdateTime`, `UpdateWorldGen`, `UpdateServerOrClient`, `UpdateLiquid`.
 
+Every stream gets the same seed, the world's, so they all walk one number sequence, each at its own
+position. The stream table is created once, in `Main.Initialize`, and never cleared: leaving to the menu and
+entering a world again continues the streams, and only restarting the game resets them.
+
 `WorldGen.genRand` is now just `Main.rand`, so random tile updates (Plantera bulbs, life fruit, grass
 spread) draw from `UpdateWorldGen`. Dust spawned by NPC updates no longer shifts NPC spawning. Everything
 outside world updates (menus, UI such as reforging and bags, weather, drawing) shares the base
@@ -68,12 +72,45 @@ and how each is handled (`Runtime/Determinism`, `Runtime/Frames`):
 | `Main.qaStyle` "Auto" | Graphics quality follows real FPS and changes **liquid physics** and dust limits | Pinned to High |
 | `Lighting.Mode` setter | Resets the render schedule on every assignment | Assigned only when it differs |
 | `DateTime.Now` | Halloween/Christmas content | `checkXMas`/`isHalloweenDateNow` use the movie's date |
-| Clock-seeded RNGs (`new UnifiedRandom()`, `Main.rand` at init, `TileFrameSeed` from a GUID) | Different sequences every launch | Seeded from the movie at its start, counters for the rest |
+| Clock- and GUID-seeded generators: `new UnifiedRandom()`, `FastRandom.CreateWithRandomSeed()` (wind gust timing **during play**, stars, light flicker), `Main.rand` at init, `TileFrameSeed`, `UnpausedUpdateSeed` | Different sequences every launch | Seeded from the movie at its start; generators created without a seed get seeds from counters that the movie start resets and savestates keep |
+| What booting and world loading roll at a moment that depends on how long they took: wind and weather counters, the cloud layer, critter spawn chances, the traveling merchant's shop, stars, clouds | The movie starts from a different world every launch | Rolled again at the movie start from the movie seed, on a generator of their own (the movie's `Main.rand` sequence is untouched) |
+| Everything that advances on every frame from boot, title screen included: tile, wall, waterfall and critter cage animations, item icon animations (the scrying orb draws from `Main.rand`), color pulses, `timeForVisualEffects` (read by AI), the game clock | Same, plus RNG draws on their own schedule | Put back to their boot values at the movie start; the game clock starts every movie at one hour |
+| The mouse position before the movie places the cursor | Terraria only updates its cursor when the mouse moves, so it keeps what it picked up while loading | Cursor placed at the window center at the movie start |
 | Threaded world loading | Variable number of frames before the world is ready | The movie starts on the first update after the loader thread returned |
 | Autosave, settings menus, Steam threads | Disk writes, settings changes, background work | Disabled or pinned |
-| Lighting engine | Steps once per frame (minimap, scene metrics, scan, blur); drives the layer-refresh schedule and **biome detection** | Phase reset at movie start, state in savestates |
-| Visual systems sharing `Main.rand` (item icon animations, tile animation counters, weather vane, ambient critters, layer refreshes) | Their state decides how many samples they draw from the RNG that reforges and weather share | State in savestates, schedules reset at movie start |
+| Lighting engine | Steps once per frame (minimap, scene metrics, scan, blur); drives the layer-refresh schedule and **biome detection** | Phase reset and flicker generators reseeded at movie start, state in savestates |
+| Visual systems sharing `Main.rand` (item icon animations, tile animation counters, weather vane, ambient critters, layer refreshes, clouds, stars) | Their state decides how many samples they draw from the RNG that reforges and weather share | State in savestates, schedules reset at movie start |
+| Draw-time state read by updates (`cloudBGAlpha` moves while the sky is drawn and feeds the cloud counts `UpdateWeather` rolls on) | Depends on what was drawn, including the title screen | In savestates (every static value is), reset at movie start |
 | Visual emission into shared pools | Dust spawned by drawing can make gameplay `Dust.NewDust` calls find no free slot, which shifts gameplay streams | Draw schedule made deterministic (above) |
+| Sound state (`LegacySoundPlayer.PlaySound` asks whether earlier sounds still play: which thunder sound, whether an item, NPC hit or death, roar or splash sound plays and rolls its pitch) | Pausing or fast-forwarding changed random draws on the gameplay streams, so drops | `SoundClock` answers from game frames; the sound and ambient volumes never read 0 there (a sound scaled to 0 returned before its rolls) |
+| Music choice (`UpdateAudio_DecideOnNewMusic` rolls `Main.rand` between two versions of the day and underground tracks on every update where the audio engine reports neither as playing; music volume 0 skipped the choice and blocked music boxes) | `Main.rand` draws, and so weather, reforges and bags, depended on how fast the real track started, fast-forward and the machine | A track counts as playing when it was the music of the previous update (`MusicChoice`); the music volume only changes what you hear |
+| User settings that change the simulation: background, flashy effects, sway in wind, blood and gore, pickup text, waterfall limit, screen shake, storm effects (RNG, dust, gore, light, camera), zoom and interface size (mouse mapping; a fresh install picks the interface size from the screen height), map and minimap, control options | The same movie played differently on another configuration | Part of the movie header, applied when it loads, fresh-install values when absent ([format](movie-format.md#game-settings)); 4K support pinned off (its graphics profile depends on the desktop and GPU) |
+| Item animations exist only once the splash screen ends | The movie start put back a copy taken earlier, empty: no animation ran, and a Fallen Star or soul on screen crashed the game | Rebuilt at the movie start with the game's own setup |
+| Smart cursor on/off (`SmartCursorWanted_Mouse`) lives as long as the game process | Depended on what happened earlier in the session | Off at the movie start |
+| Characters typed into chat, signs and names arrive through window messages, apart from the keyboard state | Typing during a movie or a recording would not replay | Dropped on every frame the TAS feeds the input |
+| Animated forest backgrounds take their textures from the animation frame | Left at the title screen's last frame | Set again at the movie start with the game's own animation step |
+| NPC and gore textures load the first time something draws them and stay loaded for the process, and gameplay reads whether they are: before, an NPC's animation frame does not advance (some AI reads it) and a gore has no size (its collision box) | Earlier attempts, and frames played before loading a savestate, changed later frames | All NPC and gore textures loaded at boot (`TexturePreload`, about 130 MB of the 32-bit process). Item and projectile textures are loaded right before gameplay measures them; tiles, walls and backgrounds only matter to drawing |
+| Key bindings and the forward zoom mode (`input profiles.json`) | The same keys did something else on another configuration | Part of the movie header (`Bind` lines, `ForwardZoom`), fresh-install values when absent ([format](movie-format.md#key-bindings)); switching control profiles does nothing during a movie |
+| Resource packs | They can replace sounds (whose length decides random rolls, see the sound row), fonts and texts (which place buttons); the game itself rejects textures whose size differs from vanilla | TAS sessions use the game's own content (`AssetSourceController.UseResourcePacks` gets no packs); the selection stays in `config.json` |
+| Achievements (`achievements.dat`, written as they complete) | The inventory's achievement card (hovering it keeps clicks from the world) and the unlock popups (they catch clicks) depended on earlier sessions | None completed at the movie start, the file is never written, progress and popups in savestates |
+| The game saves `config.json` and `input profiles.json` from settings menus and when quitting through the menu | A movie's settings and bindings would have become the local configuration, and so the next `--new` movie's | No saves while a movie is loaded |
+| Journey mode sliders commit a change when the real clock reads at least the time of the last commit | Always, unless Windows sets its clock back | Always |
+| A player saved while dead enters the world with the real time since saving taken off the respawn timer | The movie start depended on when it was played | The timer the file has |
+| World loading runs on a thread of its own while the main thread runs the menu, and both draw from `Main.rand` (`WorldGen.genRand` is `Main.rand` in 1.4.5): settling the liquids (`Liquid.Update` rounds some tiles up at random) took whatever numbers the interleaving left it | A world with water still moving (any newly generated one) started movies with other liquids on every launch (`Liquid.numLiquid`, `Main.liquid` in the global-state audit) | While a world loads, liquids draw from a generator of the loading thread seeded from the world (`WorldLoadPins`); the other loading draws are rolled again at the movie start |
+| Player and world files: a movie made with a world, played on a world of the same name that someone played in since | Desyncs from frame 0, or a different run altogether | The header pins both files by SHA-256 (`PlayerChecksum`, `WorldChecksum`), checked before the game starts |
+| A data folder whose `config.json` has no `Language` or `ClientUUID` (a new one: sessions with a movie never save the configuration) | Every launch was the game's first: the language selection flag set, a new client id | Both written before launch when missing |
+| Background texture sizes (`Main.backgroundWidth`, `backgroundHeight`) are recorded when a background is first drawn, so at the movie start they depend on what the title screen drew | Only drawing reads them, and drawing loads a background at once (`ImmediateLoad`) when it first needs one | Not audited at the movie start |
+| Creating the character and the world in the launch that records | World generation leaves its state in the game's memory (generation flags, structures, the shared RNG), which later launches of the movie never have | `--new` creates them in a launch of its own, then records in a fresh one |
+| No audio device: Terraria skips every sound and the music choice | None of their random rolls happen | Movies refuse to play or record; free play only warns |
+| Window size: the back buffer follows the window, and Terraria's screen size follows the back buffer on its next draw (`UpdateDisplaySettings`), also when Windows makes a window smaller to fit the screen | Mouse coordinates, lighting range, what is on screen, dust near it | Written to `config.json` before launch, resizing and maximizing off while a movie is loaded, and a movie start at another size than the movie's aborts |
+| Minimized window: XNA skips the draw of every frame (`Game.DrawFrame`). Drawing anyway is no way out: Terraria's `SetDisplayMode` reads the empty client area and shrinks the screen to its minimum | Frames without their draw, where interface logic and random rolls run | Frames wait while the window is minimized; a minimize and restore in the middle of a movie verifies in sync |
+
+Still open:
+
+- Movies cannot run on a machine without an audio device. Supporting one would take a simulated sound engine
+  (the sound player, its sound lengths and the music choice) that runs without the device.
+- Menus outside a world use the local menu key bindings; they only matter if a movie leaves the world.
+- An audio device that disappears during a session (unplugged headset) has not been tested.
 
 `TerrariaTas.exe movie.tas --verify` measures all of this: it fingerprints every frame (players,
 NPCs, projectiles, items, camera, weather, every RNG stream), replays from a mid-movie savestate and from
@@ -81,16 +118,24 @@ the start state, and compares against the previous launch. It traces every draw 
 desync report names the exact game method whose behaviour diverged, and it prints the full list of
 methods that drew from it.
 
-State as of this writing, on a 512-frame movie: replay across launches in sync, replay from a mid-movie
-savestate in sync, replay from the start state diverges at frame 377 inside `Main.UpdateWeather` (one
-weather input is still missing from savestates). See TODO.md.
+It also audits the game's global state, before a desync happens: every static value of the global-state
+classes (`GameAccess/GlobalState`) is compared right after each savestate load with its value when the state
+was saved (anything listed is state savestates miss), and at the movie start with the previous launch
+(anything listed comes from outside the movie). Both lists are empty today, apart from frame-rate counters
+measured from the real clock that no gameplay reads.
+
+State as of this writing, on a 512-frame movie in a rainy world: replay across launches, from a mid-movie
+savestate and from the start state all in sync, two launches in a row. See TODO.md for what is not covered yet.
 
 ## 4. Savestates
 
-`SaveStateStore` = Re-Logic's gameplay and input snapshots + what they leave out, as a declarative list:
-the shared RNG, previous-frame device states, frame counters read by AI, UI flags, the visual systems
-above, lighting engine state, scene metrics, weather/thunder state, the draw schedule. Other features add
-their own state through `SaveStateStore.Register` (the virtual cursor, the frame clock).
+`SaveStateStore` = Re-Logic's gameplay and input snapshots + what they leave out: every plain static value
+(numbers, flags, enums, strings, structs and arrays of those) of `Main`, `WorldGen`, `NPC`, `Player` and the
+other global-state classes, rather than a hand-picked list that kept missing counters (weather, tile counting,
+input targets, draw-time state); then, as a declarative list, what holds objects: the shared RNG, item
+animations, clouds and stars, lighting engine state, scene metrics, the draw schedule. Other features add their
+own state through `SaveStateStore.Register` (the virtual cursor, the frame clock, RNG positions, the seed
+counters, the sound clock).
 
 Cost: tiles dominate. A tile is 14 bytes copied into a 16-byte slot, so a small world (4200×1200) takes
 about 80 MB per savestate and a large world (8400×2400) about 320 MB. The host is a 32-bit process; it is
@@ -110,8 +155,9 @@ Replacing those three gives full control of menus, UI and gameplay, independent 
 
 ## 6. RNG manipulation
 
-`GameDiff rng` lists the 1,200+ game methods that draw random numbers, with call counts; diffing it between
-versions shows where RNG behaviour changed. Where the things speedrunners care about roll:
+`GameDiff rng` lists the 1,200+ game methods that draw random numbers, with call counts and a fingerprint of their
+code (`compat/terraria-rng.txt` for the targeted version); `GameDiff rng-check` lists the ones a new build changed.
+Where the things speedrunners care about roll:
 
 | What | Where | Generator |
 |---|---|---|
@@ -135,7 +181,43 @@ Three ways to predict, from simplest to most specific:
    upcoming values, e.g. the next 50 `Next(100)` rolls of `UpdateNPCs`.
 
 Because each world phase has its own stream, an outcome only depends on how many draws that phase made
-before it, not on unrelated visual effects. That makes options 2 and 3 practical in 1.4.5.
+before it, not on what other phases or drawing did. That makes options 2 and 3 practical in 1.4.5. Inside a
+phase, visual effects still count: particles and sounds spawned by the phase draw from its stream (see below).
+
+### Enemy drops
+
+Drops are rolled when the NPC dies, inside `NPC.NPCLoot`, on whatever stream is active when the killing blow
+lands: `UpdatePlayers` for a weapon swing, `UpdateProjectiles` for any projectile, `UpdateNPCs` for lava,
+debuffs and other NPCs. In order:
+
+1. The hit, before the loot: crit roll, damage variance (`Main.DamageVar`), hit sound pitch, then
+   `HitEffect`: blood particles, and on death the death particles and gore (a slime's death is 50 particles,
+   about 300 draws).
+2. `NPCLoot`: kill counting (banners are a counter in 1.4.5, no item, no draw), a draw for statue-spawned
+   enemies, then the drop rules: global rules first (keys, souls, mechanical boss summons, holiday drops; a
+   rule whose condition fails draws nothing), then the NPC's own. A typical rule is "luck roll < chance",
+   then a draw for the stack, then `Item.NewItem` draws a prefix (gear only) and two velocity values.
+3. Death events: nothing for ordinary enemies; potions, hearts and celebrations for bosses.
+4. Coins: at least 8 draws, plus a few per coin stack. Hearts and stars: two luck rolls whose branch depends
+   on the player's life and mana.
+
+Luck (`Luck.RollLuck`) costs one draw at luck 0 and at least one more at any other value, so luck changes
+the number of draws as well as the odds. Boss treasure bags are rolled when opened from the inventory, on
+the shared RNG.
+
+What the hit spends depends on more than the inputs:
+
+- `Dust.NewDust` only draws when the spawn point is near the screen (a margin of up to 400 px that shrinks as
+  the dust pool fills), and draws more once the pool is over half full. Camera position and window size
+  change drops. The movie's `Resolution` header pins the window size.
+- Many sounds draw a random pitch (`LegacySoundPlayer`), but only when they actually play: not at sound
+  volume 0, not far from the camera, not without an audio device (Terraria also forces the volume to 0 when
+  music fails to load). A few sounds also skip while their previous instance is still playing. The TAS
+  does not pin the volume yet (TODO).
+- Gore is not limited to the screen, but with Blood and Gore off each piece draws two more numbers.
+
+TAS Studio's drop forecast (docs/studio.md) runs the three drop methods of `NPCLoot` on copies of a stream for
+every offset and undoes what they spawned; the kill log records the stream and offset each real kill used.
 
 ## 7. Following game updates
 
@@ -145,7 +227,10 @@ before it, not on unrelated visual effects. That makes options 2 and 3 practical
 - `GameDiff surface` records every Terraria member the TAS depends on (patched, mirrored, called, read, or
   reached by name such as private fields) with a fingerprint of its IL that ignores metadata tokens and
   compiler-generated numbering. `GameDiff check` lists what disappeared or changed in a new build.
+- `GameDiff rng-check` does the same for every method that draws random numbers: what a new build changed there can
+  move drops, spawns and manipulation routes even when the TAS itself needs no change.
 - `--verify` on reference movies tells whether the port is deterministic again.
+- `build/port-check.ps1` runs all of the above in one go.
 
 See [porting.md](porting.md).
 

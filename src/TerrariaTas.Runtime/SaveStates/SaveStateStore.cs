@@ -5,7 +5,9 @@ using System.Reflection;
 using HarmonyLib;
 using Terraria;
 using Terraria.GameContent.Ambience;
+using Terraria.DataStructures;
 using Terraria.GameContent.Drawing;
+using Terraria.GameContent.UI.Minimap;
 using Terraria.Graphics;
 using Terraria.GameInput;
 using Terraria.Testing;
@@ -24,32 +26,27 @@ internal sealed class SaveStateStore
     private static readonly MethodInfo DeepClone = typeof(DeepCloning).GetMethod(nameof(DeepCloning.Clone))!;
 
     private readonly List<Extra> _extras = new();
+    private readonly StaticFieldState _statics = new();
 
     public SaveStateStore()
     {
+        // Every plain static value of Main and the other global-state classes: weather and wind counters, thunder,
+        // cloud counts, tile counting, frame counters AI reads, UI flags, input targets, the draw schedule, tile and
+        // critter animations... The entries below cover what holds objects.
+        Register("Static values", () => _statics.Capture(), saved => _statics.Restore((object?[])saved!));
+
         // Base RNG used outside world updates: UI (reforging, crafting prefixes, opening bags), weather, drawing.
         AddStatic(typeof(Main), nameof(Main.rand));
 
-        // Previous-frame device states: "just pressed" logic compares against them.
+        // Previous-frame device states: "just pressed" logic compares against them. (The Main ones are static values
+        // too; listed anyway because input must never go missing.)
         AddStatic(typeof(Main), nameof(Main.keyState), nameof(Main.oldKeyState), nameof(Main.mouseLeftRelease), nameof(Main.mouseRightRelease));
         AddStatic(typeof(PlayerInput), nameof(PlayerInput.MouseInfo), nameof(PlayerInput.MouseInfoOld),
             nameof(PlayerInput.ScrollWheelValue), nameof(PlayerInput.ScrollWheelValueOld));
 
-        // Frame counters that NPC and projectile AI read.
-        AddStatic(typeof(Main), nameof(Main.timeForVisualEffects), nameof(Main.EverLastingTicker), nameof(Main.UnpausedUpdateSeed));
-
-        // Weather outside Re-Logic's snapshot: thunder and lightning decide how often UpdateWeather rolls the shared RNG.
-        AddStatic(typeof(Main), "thunderDelay", nameof(Main.thunderDistance), nameof(Main.thunderSkipSound),
-            nameof(Main.lightning), "lightningSpeed", "lightningDecay",
-            nameof(Main.windSpeedTarget), nameof(Main.maxRaining), nameof(Main.cloudAlpha), nameof(Main.atmo));
-
-        // UI state that changes how the next frames play out.
-        AddStatic(typeof(Main), nameof(Main.playerInventory), nameof(Main.mapFullscreen), nameof(Main.ingameOptionsWindow));
-
         // Visual systems whose state decides how many samples they draw from Main.rand, which gameplay shares.
         // Found with the RNG consumer census that --verify prints; add new ones here.
-        AddStatic(typeof(Main), nameof(Main.itemAnimations), nameof(Main.tileFrame), nameof(Main.tileFrameCounter),
-            nameof(Main.wallFrame), nameof(Main.wallFrameCounter), nameof(Main.weatherVaneBobframe));
+        AddStatic(typeof(Main), nameof(Main.itemAnimations), nameof(Main.cloud), nameof(Main.star));
         Add(typeof(AmbienceServer), () => Main.AmbienceServer, "Main.AmbienceServer", "_updatesUntilNextAttempt", "_forcedSpawns");
 
         // The lighting engine steps once per frame; one of its steps refreshes biome detection (Main.SceneMetrics).
@@ -59,10 +56,17 @@ internal sealed class SaveStateStore
         AddStatic(typeof(Main), "_cameraSceneMetrics", "_playerSceneMetrics", "_usingSeparateCameraSceneMetrics");
 
         // The draw schedule: tile drawing emits dust and particles (into pools gameplay also uses) whenever it
-        // refreshes a cached layer, which depends on these counters and on where each layer was last rendered.
-        AddStatic(typeof(Main), nameof(Main.renderCount), nameof(Main.renderNow), "_drawCycleCounter", nameof(Main.TileFrameSeed));
+        // refreshes a cached layer, which depends on the render counters (static values) and on where each layer
+        // was last rendered.
         foreach (var layer in AccessTools.GetDeclaredFields(typeof(Main)).Where(f => f.IsStatic && f.FieldType == typeof(WorldSceneLayerTarget)))
             Add(typeof(WorldSceneLayerTarget), () => layer.GetValue(null), "Main." + layer.Name, "_position");
+        // Game settings a movie fixes that live on objects rather than in static fields (GameAccess/GlobalState has those).
+        Add(typeof(WaterfallManager), () => Main.instance.waterfallManager, "Main.instance.waterfallManager", "maxWaterfallCount");
+        var minimapFrame = AccessTools.Field(typeof(SelectionHolder<MinimapFrame>), "ActiveSelectionConfigKey");
+        var setMinimapFrame = AccessTools.Method(typeof(SelectionHolder<MinimapFrame>), "SetActiveFrame", new[] { typeof(string) });
+        Register("Minimap frame", () => minimapFrame.GetValue(Main.MinimapFrameManagerInstance),
+            saved => setMinimapFrame.Invoke(Main.MinimapFrameManagerInstance, new[] { saved }));
+
         Add(typeof(TileDrawing), () => Main.instance.TilesRenderer, "TilesRenderer",
             "_rand", "_windGrid", "_isActiveAndNotPaused", "_specialsCount", "_specialPositions", "_specialTilesCount",
             "_specialTileX", "_specialTileY", "_vineRootsPositions", "_reverseVineRootsPositions",

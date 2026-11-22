@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TAS Studio: tool windows that show what the TAS sees and drive it. Runs outside the game and talks
+       to TerrariaTas.exe over a local pipe, so it never loads Terraria and builds without it. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Lets CI (Linux) build it too. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TerrariaTas.Core\TerrariaTas.Core.csproj" />
+  </ItemGroup>
+
+</Project>

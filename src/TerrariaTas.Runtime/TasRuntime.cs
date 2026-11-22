@@ -1,4 +1,6 @@
 using HarmonyLib;
+using TerrariaTas.Core.Launch;
+using TerrariaTas.Runtime.Creation;
 using TerrariaTas.Runtime.GameAccess;
 using TerrariaTas.Runtime.Session;
 
@@ -15,7 +17,11 @@ public static class TasRuntime
         // static initializer early, so the save directory must be known before any patch.
         Terraria.Program.SavePath = options.DataDir;
 
-        TasSession.Install(options, new Harmony("terraria-tas"));
+        var harmony = new Harmony("terraria-tas");
+        if (options.Mode == LaunchMode.Create)
+            CreationSession.Install(options, harmony);
+        else
+            TasSession.Install(options, harmony);
         Terraria.Program.LaunchGame(new[] { "-savedirectory", options.DataDir });
     }
 }

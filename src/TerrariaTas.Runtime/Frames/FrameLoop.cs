@@ -125,6 +125,20 @@ internal sealed class FrameLoop
         [HarmonyPatch(typeof(Main), "Update", typeof(GameTime)), HarmonyPostfix]
         private static void UpdatePostfix() => _active!.AfterUpdate();
 
+        [HarmonyPatch(typeof(Main), "Update", typeof(GameTime)), HarmonyFinalizer]
+        private static Exception? UpdateFinalizer(Exception? __exception) => Crashed(__exception);
+
+        [HarmonyPatch(typeof(Main), "Draw", typeof(GameTime)), HarmonyFinalizer]
+        private static Exception? DrawFinalizer(Exception? __exception) => Crashed(__exception);
+
+        /// <summary>Lets the driver save its work, then lets the exception go on to Terraria's crash handling.</summary>
+        private static Exception? Crashed(Exception? exception)
+        {
+            if (exception != null)
+                _active!._driver.GameCrashed(exception);
+            return exception;
+        }
+
         [HarmonyPatch(typeof(Main), "Draw", typeof(GameTime)), HarmonyPrefix]
         private static void DrawPrefix(ref GameTime gameTime) => gameTime = _active!._gameTime;
 

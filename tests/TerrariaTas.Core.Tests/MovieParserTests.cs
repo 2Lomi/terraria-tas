@@ -29,6 +29,17 @@ public class MovieParserTests
         Assert.True(header.StartsInWorld);
     }
 
+    [Theory]
+    [InlineData("800x600", 800, 600)]
+    [InlineData("1920X1200", 1920, 1200)]
+    public void AcceptsResolutionsWithinTerrariasLimits(string resolution, int width, int height)
+    {
+        var header = MovieParser.Parse("Resolution: " + resolution).Header;
+
+        Assert.Equal(width, header.ScreenWidth);
+        Assert.Equal(height, header.ScreenHeight);
+    }
+
     [Fact]
     public void ParsesInputLinesOnATimeline()
     {
@@ -93,6 +104,10 @@ public class MovieParserTests
     [InlineData("1 D\nSeed: 3", 2, "before the first input")]
     [InlineData("Speed: 3", 1, "Unknown header property")]
     [InlineData("hello", 1, "Cannot understand")]
+    [InlineData("Resolution: 1280", 1, "WIDTHxHEIGHT")]
+    [InlineData("Resolution: 1281x720", 1, "even numbers")]
+    [InlineData("Resolution: 640x480", 1, "from 800x600 to 1920x1200")]
+    [InlineData("Resolution: 2560x1440", 1, "from 800x600 to 1920x1200")]
     public void ReportsErrorsWithLineNumbers(string text, int line, string message)
     {
         var error = Assert.Throws<MovieFormatException>(() => MovieParser.Parse(text));

@@ -10,3 +10,10 @@ build/Terraria.user.props
 
 # TAS working data: copies of players/worlds, configs, logs.
 TasData/
+
+# Movie backups and partial writes made while recording.
+*.tas.bak
+*.tas.tmp
+
+# Release packages (build/package.ps1).
+artifacts/

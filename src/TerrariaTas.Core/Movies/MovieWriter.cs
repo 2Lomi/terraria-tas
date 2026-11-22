@@ -21,7 +21,7 @@ public static class MovieWriter
             if (breakpoints.Contains(movie.StartFrameOf(i)))
                 text.Append("***\n");
 
-            WriteLine(text, movie.Lines[i], lastCursor);
+            AppendLine(text, movie.Lines[i], lastCursor, "\n");
             lastCursor = movie.Lines[i].Cursor;
         }
 
@@ -37,15 +37,39 @@ public static class MovieWriter
             text.Append("Terraria: ").Append(header.TerrariaVersion).Append('\n');
         if (header.Player != null)
             text.Append("Player: ").Append(header.Player).Append('\n');
+        if (header.PlayerChecksum != null)
+            text.Append("PlayerChecksum: ").Append(header.PlayerChecksum).Append('\n');
         if (header.World != null)
             text.Append("World: ").Append(header.World).Append('\n');
+        if (header.WorldChecksum != null)
+            text.Append("WorldChecksum: ").Append(header.WorldChecksum).Append('\n');
         text.Append("Seed: ").Append(header.Seed.ToString(CultureInfo.InvariantCulture)).Append('\n');
         text.Append("Date: ").Append(header.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).Append('\n');
         text.Append("Resolution: ").Append(header.ScreenWidth.ToString(CultureInfo.InvariantCulture))
-            .Append('x').Append(header.ScreenHeight.ToString(CultureInfo.InvariantCulture)).Append("\n\n");
+            .Append('x').Append(header.ScreenHeight.ToString(CultureInfo.InvariantCulture)).Append('\n');
+
+        var settings = GameSettings.All.Where(setting => header.Settings.ContainsKey(setting.Name)).ToList();
+        if (settings.Count > 0)
+            text.Append("# Game settings that change the simulation, applied when the movie loads (docs/movie-format.md).\n");
+        foreach (var setting in settings)
+            text.Append(setting.Name).Append(": ").Append(header.Settings[setting.Name]).Append('\n');
+
+        var bindings = KeyBindings.All.Where(binding => header.Bindings.ContainsKey(binding.Name)).ToList();
+        if (bindings.Count > 0)
+            text.Append("# Key bindings; the actions not listed have a fresh install's keys (docs/movie-format.md).\n");
+        foreach (var binding in bindings)
+        {
+            text.Append("Bind ").Append(binding.Name).Append(':');
+            foreach (var input in header.Bindings[binding.Name])
+                text.Append(' ').Append(input);
+            text.Append('\n');
+        }
+
+        text.Append('\n');
     }
 
-    private static void WriteLine(StringBuilder text, InputLine line, CursorTarget? lastCursor)
+    /// <summary>Writes one input line; its cursor only when it differs from <paramref name="lastCursor"/>, the one in effect before it.</summary>
+    internal static void AppendLine(StringBuilder text, InputLine line, CursorTarget? lastCursor, string newline)
     {
         text.Append(line.FrameCount.ToString(CultureInfo.InvariantCulture).PadLeft(6));
 
@@ -62,6 +86,6 @@ public static class MovieWriter
         if (line.Cursor.HasValue && !Nullable.Equals(line.Cursor, lastCursor))
             text.Append(' ').Append(line.Cursor.Value);
 
-        text.Append('\n');
+        text.Append(newline);
     }
 }

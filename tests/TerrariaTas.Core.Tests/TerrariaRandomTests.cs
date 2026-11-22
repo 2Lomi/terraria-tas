@@ -48,6 +48,45 @@ public class TerrariaRandomTests
     }
 
     [Fact]
+    public void DrawsUntilCountsRawSamples()
+    {
+        var start = new TerrariaRandom(1234);
+        var target = start.Clone();
+        for (var i = 0; i < 1000; i++)
+            target.Next(100);
+        for (var i = 0; i < 10; i++)
+            target.Next(int.MinValue, int.MaxValue); // a range wider than int.MaxValue takes two samples
+
+        Assert.Equal(1020, start.DrawsUntil(target, maxDraws: 100_000));
+        Assert.Equal(0, target.DrawsUntil(target, maxDraws: 0));
+    }
+
+    [Fact]
+    public void DrawsUntilGivesUpAfterTheLimitAndKeepsTheGenerator()
+    {
+        var start = new TerrariaRandom(7);
+        var target = start.Clone();
+        for (var i = 0; i < 500; i++)
+            target.Next();
+        var untouched = start.Clone();
+
+        Assert.Equal(-1, start.DrawsUntil(target, maxDraws: 499));
+        Assert.Equal(500, start.DrawsUntil(target, maxDraws: 500));
+        Assert.Equal(untouched.Next(), start.Next());
+    }
+
+    [Fact]
+    public void DrawsUntilFindsAPositionFromTheSeed()
+    {
+        // How the runtime finds a stream's position: every stream starts from the world seed.
+        var stream = new TerrariaRandom(-987654);
+        for (var i = 0; i < 123_456; i++)
+            stream.NextDouble();
+
+        Assert.Equal(123_456, new TerrariaRandom(-987654).DrawsUntil(stream.CopyState(), stream.Index, maxDraws: 1_000_000));
+    }
+
+    [Fact]
     public void PeekDoesNotAdvance()
     {
         var random = new TerrariaRandom(5);

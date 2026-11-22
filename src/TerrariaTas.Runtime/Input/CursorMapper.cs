@@ -27,4 +27,17 @@ internal static class CursorMapper
         var raw = center + (offset - center) * zoom;
         return new Point((int)Math.Round(raw.X), (int)Math.Round(raw.Y));
     }
+
+    /// <summary>The tile under window pixel <paramref name="screen"/> with the current camera: the inverse of <see cref="ToScreen"/>.</summary>
+    public static Point ToTile(Point screen, Point screenSize)
+    {
+        var center = new Vector2(screenSize.X, screenSize.Y) / 2f;
+        var zoom = Main.GameViewMatrix.RenderZoom.X;
+        var offset = center + (new Vector2(screen.X, screen.Y) - center) / zoom;
+        if (Main.LocalPlayer.gravDir == -1f)
+            offset.Y = screenSize.Y - offset.Y;
+
+        var world = offset + Main.screenPosition;
+        return new Point((int)Math.Floor(world.X / TileSize), (int)Math.Floor(world.Y / TileSize));
+    }
 }

@@ -1,3 +1,5 @@
+using System;
+
 namespace TerrariaTas.Runtime.Frames;
 
 /// <summary>What the main loop does on one tick, as decided by an <see cref="IFrameDriver"/>.</summary>
@@ -28,4 +30,10 @@ internal interface IFrameDriver
 {
     /// <summary>Called on every main-loop tick at a frame boundary, before Terraria updates. Must not throw.</summary>
     TickPlan PlanTick();
+
+    /// <summary>
+    /// Terraria's update or draw threw: the game is about to show its crash dialog and close. Last chance to save
+    /// work. Must not throw.
+    /// </summary>
+    void GameCrashed(Exception exception);
 }

@@ -1,7 +1,8 @@
 name: CI
 
 # The runtime and launcher compile against the user's own Terraria install, so CI builds and tests
-# everything that does not need the game: Core (movie format, playback, RNG model, self-test logic) and GameDiff.
+# everything that does not need the game: Core (movie format, playback, RNG model, self-test logic,
+# Studio protocol), TAS Studio and GameDiff.
 on:
   push:
   pull_request:
@@ -15,4 +16,5 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - run: dotnet test tests/TerrariaTas.Core.Tests
+      - run: dotnet build src/TerrariaTas.Studio
       - run: dotnet build tools/TerrariaTas.GameDiff

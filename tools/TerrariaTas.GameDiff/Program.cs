@@ -12,7 +12,9 @@ const string usage = """
       check <Terraria.exe> <surface-file>
           Compare a recorded surface with another Terraria build. Exit code 1 when something needs review.
       rng <Terraria.exe> [output-file]
-          List the methods that draw random numbers.
+          List the methods that draw random numbers, with a fingerprint of their code.
+      rng-check <Terraria.exe> <rng-file>
+          Compare a recorded list with another Terraria build. Exit code 1 when something needs review.
       diff <old Terraria.exe> <new Terraria.exe> [namespace-prefix]
           List every method added, removed or changed between two builds.
     """;
@@ -47,8 +49,15 @@ try
         case "rng" when args.Length is 2 or 3:
             using (var game = Modules.Read(args[1]))
             using (var output = args.Length == 3 ? new StreamWriter(args[2]) : Console.Out)
-                RngMap.Write(game, output);
+                RngMap.Write(game, game.Assembly.Name.Version.ToString(), output);
             return 0;
+
+        case "rng-check" when args.Length == 3:
+            using (var game = Modules.Read(args[1]))
+            {
+                Console.WriteLine($"Checking {args[2]} against Terraria {game.Assembly.Name.Version}:");
+                return RngMap.Check(RngMap.Read(args[2]), game, Console.Out) == 0 ? 0 : 1;
+            }
 
         case "diff" when args.Length is 3 or 4:
             using (var before = Modules.Read(args[1]))

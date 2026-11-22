@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <Deterministic>true</Deterministic>
+    <!-- Keeps the version shown in the window title as "<Terraria version>-r<revision>", without a git hash. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>Terraria TAS</Product>
     <Authors>Terraria TAS contributors</Authors>
     <Copyright>MIT License</Copyright>

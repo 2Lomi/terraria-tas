@@ -20,7 +20,8 @@ This will be a large engine. These rules keep it readable.
 
 - `dotnet test tests/TerrariaTas.Core.Tests`
 - If the change touches the runtime: `TerrariaTas.exe movies/<movie>.tas --verify`, twice (the second
-  launch also compares against the first). Mention the result in the PR.
+  launch also compares against the first). Mention the result in the PR. `.\build\port-check.ps1` does
+  both launches for every movie whose player and world you have.
 - If it touches new game members: regenerate `compat/terraria-surface.txt` (see docs/porting.md).
 
 ## Never commit

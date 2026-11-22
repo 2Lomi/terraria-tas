@@ -114,6 +114,44 @@ public sealed class TerrariaRandom
         return _seedArray[current] - _seedArray[other];
     }
 
+    /// <summary>
+    /// Counts the draws that take this generator to the given state (one per raw sample, so a
+    /// <c>Next(min, max)</c> over more than <see cref="int.MaxValue"/> values counts twice).
+    /// Returns -1 when it takes more than <paramref name="maxDraws"/>. This generator is not modified.
+    /// </summary>
+    public long DrawsUntil(int[] state, uint index, long maxDraws)
+    {
+        if (state.Length != StateLength)
+            throw new ArgumentException($"Expected {StateLength} state values, got {state.Length}.", nameof(state));
+
+        var probe = Clone();
+        for (long draws = 0; ; draws++)
+        {
+            if (probe.HasState(state, index))
+                return draws;
+            if (draws == maxDraws)
+                return -1;
+            probe.InternalSample();
+        }
+    }
+
+    public long DrawsUntil(TerrariaRandom target, long maxDraws) => DrawsUntil(target._seedArray, target._index, maxDraws);
+
+    private bool HasState(int[] state, uint index)
+    {
+        // A draw only rewrites the slot at _index, so comparing it first rejects almost every candidate cheaply.
+        if (_index != index || _seedArray[index] != state[index])
+            return false;
+
+        for (var i = 0; i < StateLength; i++)
+        {
+            if (_seedArray[i] != state[i])
+                return false;
+        }
+
+        return true;
+    }
+
     private double Sample() => InternalSample() * (1.0 / MaxValue);
 
     private double SampleForLargeRange()

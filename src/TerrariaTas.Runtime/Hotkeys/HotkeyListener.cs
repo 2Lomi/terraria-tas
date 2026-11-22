@@ -1,51 +1,63 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using TerrariaTas.Core.Hotkeys;
 using TerrariaTas.Core.Movies;
 
 namespace TerrariaTas.Runtime.Hotkeys;
 
-internal enum HotkeyAction
-{
-    PlayPause,
-    FrameAdvance,
-    FastForward,
-    SaveState,
-    LoadState,
-    ReloadMovie,
-    PreviousSlot,
-    NextSlot,
-    Restart,
-}
-
 /// <summary>
 /// Reads TAS hotkeys straight from the physical keyboard, independently of the virtual input the game sees.
-/// Active only while the game window or its console has focus.
+/// Active only while the game window or its console has focus. The keys come from the data folder's hotkeys.txt.
 /// </summary>
 internal sealed class HotkeyListener
 {
-    private static readonly Dictionary<HotkeyAction, Key> Bindings = new()
-    {
-        [HotkeyAction.PlayPause] = Key.NumPad0,
-        [HotkeyAction.FrameAdvance] = Key.NumPad1,
-        [HotkeyAction.FastForward] = Key.NumPad2,
-        [HotkeyAction.SaveState] = Key.NumPad4,
-        [HotkeyAction.LoadState] = Key.NumPad5,
-        [HotkeyAction.ReloadMovie] = Key.NumPad6,
-        [HotkeyAction.PreviousSlot] = Key.NumPad7,
-        [HotkeyAction.NextSlot] = Key.NumPad8,
-        [HotkeyAction.Restart] = Key.NumPad9,
-    };
-
+    private readonly HotkeyMap _map;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly Dictionary<HotkeyAction, TimeSpan> _heldSince = new();
     private readonly HashSet<HotkeyAction> _pressed = new();
     private readonly HashSet<HotkeyAction> _released = new();
 
-    public static string Help =>
-        "NumPad0 play/pause | NumPad1 frame advance (hold to repeat) | NumPad2 fast-forward (hold) | "
-        + "NumPad4 save state | NumPad5 load state | NumPad7/8 previous/next slot | NumPad9 restart | NumPad6 reload movie";
+    public HotkeyListener(HotkeyMap map)
+    {
+        _map = map;
+    }
+
+    public HotkeyMap Map => _map;
+
+    /// <summary>
+    /// The hotkeys of <paramref name="dataDir"/>'s hotkeys.txt, which is created with the default keys when missing so
+    /// that there is a file to edit.
+    /// </summary>
+    /// <exception cref="TasSetupException">The file has a mistake: the TAS would not react to the keys its user expects.</exception>
+    public static HotkeyMap Load(string dataDir, out string path)
+    {
+        path = Path.Combine(dataDir, HotkeyMap.FileName);
+        if (!File.Exists(path))
+        {
+            try
+            {
+                File.WriteAllText(path, HotkeyMap.Default.Write());
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                Log.Warn($"Could not create {path} ({e.Message}): the default hotkeys apply.");
+            }
+
+            return HotkeyMap.Default;
+        }
+
+        try
+        {
+            return HotkeyMap.Parse(File.ReadAllText(path));
+        }
+        catch (MovieFormatException e)
+        {
+            throw new TasSetupException($"{path}{(e.LineNumber > 0 ? $", line {e.LineNumber}" : "")}: {e.Reason} Fix the file, or delete it to get the default hotkeys back.");
+        }
+    }
 
     public void Poll(IntPtr gameWindow)
     {
@@ -54,7 +66,7 @@ internal sealed class HotkeyListener
         var foreground = GetForegroundWindow();
         var focused = foreground == gameWindow || foreground == GetConsoleWindow();
 
-        foreach (var binding in Bindings)
+        foreach (var binding in _map.Keys)
         {
             var down = focused && (GetAsyncKeyState((int)binding.Value) & 0x8000) != 0;
             var wasDown = _heldSince.ContainsKey(binding.Key);
