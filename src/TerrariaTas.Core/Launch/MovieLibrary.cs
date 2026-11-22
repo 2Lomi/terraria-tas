@@ -69,6 +69,12 @@ public sealed class MovieLibrary
 {
     public const string Extension = ".tas";
 
+    // Movie files live on Windows, the only system the game runs on, so names follow its rules wherever this code runs:
+    // Path.GetInvalidFileNameChars() on Linux (where CI runs the tests) lets '?', '*', ':' and the like through. These are
+    // the sets .NET Framework uses on Windows.
+    private static readonly char[] InvalidFileNameChars = WithControlChars("\"<>|:*?\\/");
+    private static readonly char[] InvalidPathChars = WithControlChars("\"<>|");
+
     public MovieLibrary(string moviesDir, string dataDir)
     {
         MoviesDir = Path.GetFullPath(moviesDir);
@@ -110,7 +116,7 @@ public sealed class MovieLibrary
     {
         name ??= "run-" + now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         var isPath = Path.IsPathRooted(name) || name.IndexOfAny(new[] { '/', '\\' }) >= 0;
-        if (name.Trim().Length == 0 || name.IndexOfAny(isPath ? Path.GetInvalidPathChars() : Path.GetInvalidFileNameChars()) >= 0)
+        if (name.Trim().Length == 0 || name.IndexOfAny(isPath ? InvalidPathChars : InvalidFileNameChars) >= 0)
             throw new LaunchException($"'{name}' cannot be the name of a movie file.");
 
         var path = Path.GetFullPath(isPath ? name : Path.Combine(MoviesDir, name));
@@ -264,4 +270,6 @@ public sealed class MovieLibrary
     }
 
     private static bool HasMovieExtension(string path) => Path.GetExtension(path).Equals(Extension, StringComparison.OrdinalIgnoreCase);
+
+    private static char[] WithControlChars(string characters) => characters.Concat(Enumerable.Range(0, 32).Select(code => (char)code)).ToArray();
 }
