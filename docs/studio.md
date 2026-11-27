@@ -238,7 +238,8 @@ watch and its log.
 - A forecast swaps `Main.rand` for a copy of the stream, calls the NPC's drop methods, reads the items they
   spawned and restores everything (items, item-slot timers, emergency-stacking transfers, the NPC's fields).
   It fails loudly if anything was left changed. At the movie start no stream exists yet: the game creates each one
-  from the world seed the first time its phase runs, so forecasts at frame 0 start from such a fresh stream.
+  the first time its phase runs, from the movie's seed and the stream's name, so forecasts at frame 0 start from such a
+  fresh stream.
 - The damage and teleport forecasts work like the drop forecast: they run the game's own code (`Main.DamageVar`,
   `Utils.CheckForGoodTeleportationSpot`) on copies of the streams and put back what it touched (the teleport search
   leaves collision flags behind); the few lines they mirror (crit rolls, the defense step, the potion's arguments) carry

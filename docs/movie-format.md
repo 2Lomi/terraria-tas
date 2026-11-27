@@ -5,7 +5,7 @@ It is meant to be written and edited by hand, diffed and reviewed like code.
 
 ```
 # Comments start with '#', anywhere on a line.
-Terraria: 1.4.5.8
+Terraria: 1.4.6.1
 Player: Runner.plr
 PlayerChecksum: 8e77513daddd0df5f1d474ed718947a02d664913f070043e5cb7519ab5a36ca3
 World: Forest.wld
@@ -35,7 +35,7 @@ Resolution: 1280x720
 | `PlayerChecksum` | SHA-256 of that file (64 hexadecimal digits): the movie only starts from this exact file. | none (not checked) |
 | `World` | World file inside the data folder's `Worlds/` directory. | none |
 | `WorldChecksum` | SHA-256 of that file: the movie only starts from this exact file. | none (not checked) |
-| `Seed` | Seed of the shared RNG (`Main.rand`) at the movie start. The per-phase streams are seeded by the world itself. | `0` |
+| `Seed` | Seed of the random generators at the movie start: the shared one (`Main.rand`), and the per-phase streams, each seeded from it combined with its name. The game takes both from the clock when it starts; the movie fixes them. | `0` |
 | `Date` | Calendar date the game sees (`yyyy-MM-dd`). Halloween and Christmas content depends on it. | `2026-06-15` |
 | `Resolution` | Window size (`WIDTHxHEIGHT`), in even numbers from `800x600` to `1920x1200` (Terraria's limits). It changes mouse coordinates and what is on screen, so the window keeps it while the movie is loaded: it cannot be resized or maximized, and frames wait while it is minimized. | `1280x720` |
 | `Zoom`, `UIScale`... | Game settings that change the simulation: see [Game settings](#game-settings). | a fresh install's |

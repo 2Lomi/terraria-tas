@@ -1,6 +1,6 @@
 # Terraria TAS
 
-A tool-assisted speedrun (TAS) framework for **Terraria 1.4.5.8** on Windows: frame advance, savestates,
+A tool-assisted speedrun (TAS) framework for **Terraria 1.4.6.1** on Windows: frame advance, savestates,
 input movies and determinism checks, with RNG prediction tools to come.
 
 Terraria is a .NET/XNA game, so instead of emulating hardware, `TerrariaTas.exe` loads your own installed
@@ -34,7 +34,7 @@ Early, but the core loop works end to end:
 
 ## Requirements
 
-- Windows with Terraria **1.4.5.8** installed (Steam or GOG). The tool refuses other versions.
+- Windows with Terraria **1.4.6.1** installed (Steam or GOG). The tool refuses other versions.
 - A sound output (speakers, headphones, a monitor with sound or a virtual audio device). Without one, Terraria
   skips every sound and the random numbers they roll, so movies refuse to run.
 - [.NET SDK 8](https://dotnet.microsoft.com/download) or newer to build (Windows already has the .NET
@@ -53,7 +53,7 @@ variable or create `build/Terraria.user.props`:
 <Project><PropertyGroup><TerrariaDir>D:\Games\Terraria</TerrariaDir></PropertyGroup></Project>
 ```
 
-Releases are zips named after the Terraria version they run on (`TerrariaTas-1.4.5.8-r1.zip`): unzip anywhere and
+Releases are zips named after the Terraria version they run on (`TerrariaTas-1.4.6.1-r1.zip`): unzip anywhere and
 run `TerrariaTas.exe` from there (TAS Studio is in `Studio\` and needs the
 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)). Maintainers build one with
 `.\build\package.ps1`, which prints the command that publishes it.

@@ -15,6 +15,7 @@ using Terraria.IO;
 using Terraria.Map;
 using Terraria.Social;
 using Terraria.Utilities;
+using TerrariaTas.Runtime.GameAccess;
 
 namespace TerrariaTas.Runtime.Determinism;
 
@@ -333,6 +334,26 @@ internal sealed class EnvironmentPins
         {
             __result = new FastRandom(unchecked((ulong)++_active!._unseededFastRandoms * 0x9E3779B97F4A7C15UL));
             return false;
+        }
+
+        // Since 1.4.6 the world-update streams (NPC spawns, AI, drops, projectiles...) start from a seed the game takes from
+        // the clock when it starts (Main._sessionRngSeed), combined with each stream's name: the movie gives it instead.
+        [HarmonyPatch(typeof(Main), nameof(Main.SwapRandom)), HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> StreamsFromMovieSeed(IEnumerable<CodeInstruction> instructions)
+        {
+            var sessionSeed = AccessTools.Field(typeof(Main), "_sessionRngSeed");
+            var code = instructions.ToList();
+            var replaced = 0;
+            foreach (var instruction in code.Where(instruction => instruction.LoadsField(sessionSeed)))
+            {
+                instruction.opcode = OpCodes.Call;
+                instruction.operand = AccessTools.PropertyGetter(typeof(GameRng), nameof(GameRng.SessionSeed));
+                replaced++;
+            }
+
+            if (replaced == 0)
+                throw new InvalidOperationException("Main.SwapRandom no longer seeds streams from Main._sessionRngSeed: review EnvironmentPins.");
+            return code;
         }
     }
 }

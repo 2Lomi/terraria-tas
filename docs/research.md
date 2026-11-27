@@ -1,7 +1,8 @@
 # Research: tool-assisting Terraria
 
 What it takes to TAS Terraria, what the game offers, and what we found while building the foundation.
-Everything here was checked against Terraria **1.4.5.8** (Windows, Steam build 24893155).
+Everything here was checked against Terraria **1.4.5.8** (Windows, Steam build 24893155), then reviewed against what
+**1.4.6.1** (Steam build 26902183) changed when the tool was ported to it.
 
 ## 1. Not an emulator, a host
 
@@ -41,15 +42,20 @@ Re-Logic ships its own testing tools inside the release build, in `Terraria.Test
 - Debug chat commands for all of the above (`Terraria.Testing.ChatCommands`, disabled in release).
 
 The other big change is **per-phase RNG streams**. Every world-update phase swaps `Main.rand` for its
-own generator, seeded from the world seed on first use (`Main.SwapRandom`):
+own generator, created on first use (`Main.SwapRandom`):
 
 `DoUpdateInWorld`, `UpdateParticleSystems_World`, `UpdatePlayers`, `SpawnNPCs`, `SpawnNPC`,
 `UpdatePressurePlates`, `UpdateNPCs`, `UpdateGores`, `UpdateProjectiles`, `UpdateItems`, `UpdateDust`,
 `UpdateLeashedEntities`, `UpdateFloatingText`, `UpdateTime`, `UpdateWorldGen`, `UpdateServerOrClient`, `UpdateLiquid`.
 
-Every stream gets the same seed, the world's, so they all walk one number sequence, each at its own
-position. The stream table is created once, in `Main.Initialize`, and never cleared: leaving to the menu and
-entering a world again continues the streams, and only restarting the game resets them.
+In 1.4.5 every stream got the same seed, the world's, so they all walked one number sequence, each at its own
+position. Since 1.4.6 a stream's seed is a session seed combined with the stream's name
+(`_sessionRngSeed ^ key.GetHashCode()`), and the session seed comes from the clock when the game starts
+(`(int)DateTime.Now.Ticks`): every stream walks its own sequence, a different one on every launch. TAS sessions use
+the movie's `Seed` as the session seed (see 3). The string hash is .NET Framework's, which is the same on every
+launch and every machine for a 32-bit process. The stream table is created once, in `Main.Initialize`, and never
+cleared: leaving to the menu and entering a world again continues the streams, and only restarting the game resets
+them.
 
 `WorldGen.genRand` is now just `Main.rand`, so random tile updates (Plantera bulbs, life fruit, grass
 spread) draw from `UpdateWorldGen`. Dust spawned by NPC updates no longer shifts NPC spawning. Everything
@@ -72,7 +78,7 @@ and how each is handled (`Runtime/Determinism`, `Runtime/Frames`):
 | `Main.qaStyle` "Auto" | Graphics quality follows real FPS and changes **liquid physics** and dust limits | Pinned to High |
 | `Lighting.Mode` setter | Resets the render schedule on every assignment | Assigned only when it differs |
 | `DateTime.Now` | Halloween/Christmas content | `checkXMas`/`isHalloweenDateNow` use the movie's date |
-| Clock- and GUID-seeded generators: `new UnifiedRandom()`, `FastRandom.CreateWithRandomSeed()` (wind gust timing **during play**, stars, light flicker), `Main.rand` at init, `TileFrameSeed`, `UnpausedUpdateSeed` | Different sequences every launch | Seeded from the movie at its start; generators created without a seed get seeds from counters that the movie start resets and savestates keep |
+| Clock- and GUID-seeded generators: `new UnifiedRandom()`, `FastRandom.CreateWithRandomSeed()` (wind gust timing **during play**, stars, light flicker), `Main.rand` at init, `TileFrameSeed`, `UnpausedUpdateSeed`, and since 1.4.6 the seed of every world-update stream (`Main._sessionRngSeed`, read by `Main.SwapRandom`) | Different sequences every launch | Seeded from the movie at its start (`SwapRandom` reads the movie's seed in place of the session seed); generators created without a seed get seeds from counters that the movie start resets and savestates keep |
 | What booting and world loading roll at a moment that depends on how long they took: wind and weather counters, the cloud layer, critter spawn chances, the traveling merchant's shop, stars, clouds | The movie starts from a different world every launch | Rolled again at the movie start from the movie seed, on a generator of their own (the movie's `Main.rand` sequence is untouched) |
 | Everything that advances on every frame from boot, title screen included: tile, wall, waterfall and critter cage animations, item icon animations (the scrying orb draws from `Main.rand`), color pulses, `timeForVisualEffects` (read by AI), the game clock | Same, plus RNG draws on their own schedule | Put back to their boot values at the movie start; the game clock starts every movie at one hour |
 | The mouse position before the movie places the cursor | Terraria only updates its cursor when the mouse moves, so it keeps what it picked up while loading | Cursor placed at the window center at the movie start |

@@ -102,7 +102,7 @@ internal sealed class RngStreamsForm : ToolWindow
             Dock = DockStyle.Top,
             AutoSize = true,
             Padding = new Padding(8, 6, 8, 4),
-            Text = "Every world-update phase draws from its own stream, all seeded with the world seed. Offset k is the value the (k+1)-th next draw returns; Next(n) is what a roll out of n gives with it.",
+            Text = "Every world-update phase draws from its own stream, seeded from the movie's seed and the stream's name. Offset k is the value the (k+1)-th next draw returns; Next(n) is what a roll out of n gives with it.",
             MaximumSize = new Size(800, 0),
         });
     }

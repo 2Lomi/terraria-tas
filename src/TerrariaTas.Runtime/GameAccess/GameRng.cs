@@ -10,8 +10,9 @@ namespace TerrariaTas.Runtime.GameAccess;
 /// <summary>
 /// The game's random number generators. Since 1.4.5 every world-update phase runs on its own stream
 /// (<c>Main.SwapRandom("SpawnNPCs")</c>, "UpdateNPCs", "UpdateDust"...). Every stream is created on first
-/// use with the world seed and lives until the game closes. Outside those phases (menus, UI, drawing,
-/// weather) the shared <c>Main.rand</c> is used. All of them are [ThreadStatic]: only touch them from the main thread.
+/// use and lives until the game closes; since 1.4.6 its seed is the session seed combined with its name
+/// (<see cref="StreamSeed"/>). Outside those phases (menus, UI, drawing, weather) the shared <c>Main.rand</c> is used.
+/// All of them are [ThreadStatic]: only touch them from the main thread.
 /// </summary>
 internal static class GameRng
 {
@@ -27,10 +28,24 @@ internal static class GameRng
     private static readonly AccessTools.FieldRef<Dictionary<string, UnifiedRandom>> StreamTable =
         AccessTools.StaticFieldRefAccess<Dictionary<string, UnifiedRandom>>(AccessTools.Field(typeof(Main), "_rngs"));
 
+    private static int? _sessionSeed;
+
     public static Dictionary<string, UnifiedRandom> Streams => StreamTable();
 
-    /// <summary>The seed every stream starts from.</summary>
+    /// <summary>The seed of the world being played (streams no longer start from it since 1.4.6).</summary>
     public static int WorldSeed => Main.ActiveWorldFileData.Seed;
+
+    /// <summary>
+    /// What every stream's seed is made from. The game takes it from the clock when it starts
+    /// (<c>Main._sessionRngSeed</c>), so its streams differ on every launch; TAS sessions make <c>Main.SwapRandom</c>
+    /// read it here instead (see <c>EnvironmentPins</c>), and the movie start sets it to the movie's seed, which then
+    /// stays for the whole session. Until then it is the game's own value.
+    /// </summary>
+    public static int SessionSeed => _sessionSeed ??= (int)AccessTools.Field(typeof(Main), "_sessionRngSeed").GetValue(null);
+
+    /// <summary>The seed the game creates a stream with, on the first use of its name.</summary>
+    [MirrorsGameMethod("Terraria.Main", "SwapRandom")]
+    public static int StreamSeed(string name) => SessionSeed ^ name.GetHashCode();
 
     /// <summary>True for the generator shared by weather, UI and visuals (Main.rand outside any swap).</summary>
     public static bool IsShared(UnifiedRandom random) =>
@@ -59,10 +74,14 @@ internal static class GameRng
             yield return stream;
     }
 
-    /// <summary>Makes every generator the movie depends on start from a known state.</summary>
+    /// <summary>
+    /// Makes every generator the movie depends on start from a known state: the movie's seed stands for what the game
+    /// takes from the clock when it starts, for the shared generator and for the streams alike.
+    /// </summary>
     public static void ResetForMovieStart(int seed)
     {
         Main.rand = new UnifiedRandom(seed);
+        _sessionSeed = seed;
         Streams.Clear();
     }
 
@@ -80,10 +99,10 @@ internal static class GameRng
 
     /// <summary>
     /// An independent copy of a stream as the next frame will start drawing from it. A stream the game has not created
-    /// yet (at the movie start there is none) is created from the world seed on its first use: the copy is that stream.
-    /// Call at a frame boundary.
+    /// yet (at the movie start there is none) is created from <see cref="StreamSeed"/> on its first use: the copy is that
+    /// stream. Call at a frame boundary.
     /// </summary>
     [MirrorsGameMethod("Terraria.Main", "SwapRandom")]
     public static UnifiedRandom CloneForNextFrame(string name) =>
-        Streams.TryGetValue(name, out var stream) ? Clone(stream) : new UnifiedRandom(WorldSeed);
+        Streams.TryGetValue(name, out var stream) ? Clone(stream) : new UnifiedRandom(StreamSeed(name));
 }

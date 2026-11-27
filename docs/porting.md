@@ -2,7 +2,7 @@
 
 ## Version scheme
 
-A release is named `<Terraria version>-r<revision>`, for example `1.4.5.8-r1`: the first part says
+A release is named `<Terraria version>-r<revision>`, for example `1.4.6.1-r1`: the first part says
 which game build it runs on, the revision counts releases for that build. `build/Version.props` is the
 single place where the targeted Terraria version is written.
 
@@ -10,7 +10,7 @@ single place where the targeted Terraria version is written.
 - `TerrariaTas.exe` refuses to run on another version (`--ignore-version` to override, at your own risk).
 - Movies record the version they were made on (`Terraria:` header) and warn on mismatch.
 
-Git tags follow the release name: `v1.4.5.8-r1`. When a patch drops, the last release for the old version
+Git tags follow the release name: `v1.4.6.1-r1`. When a patch drops, the last release for the old version
 stays available under its tag; `main` moves to the new version.
 
 ## When Terraria updates

@@ -5,7 +5,7 @@ See [docs/research.md](docs/research.md) for the background of each item.
 
 ## M0: Foundation
 
-- [x] Host the user's Terraria 1.4.5.8 in-process (no files modified, Steam not required)
+- [x] Host the user's Terraria in-process (no files modified, Steam not required)
 - [x] Frame loop: one Update + one Draw per frame, deterministic game clock, repaint-proof
 - [x] Pause, frame advance (hold to repeat), fast-forward without presenting frames
 - [x] Text movie format with header, breakpoints, screen and tile cursor targets (+ parser tests)
@@ -91,3 +91,5 @@ See [docs/research.md](docs/research.md) for the background of each item.
 - [x] CI: build and test Core, build GameDiff
 - [x] Release packaging: `build/package.ps1` zips `TerrariaTas.exe`, its DLLs, TAS Studio, the docs and the smoke-test movie per Terraria version (`artifacts/TerrariaTas-<version>.zip`) and prints the `gh release create` command that attaches it to a GitHub release
 - [x] Porting automation: `build/port-check.ps1` runs `GameDiff check`, rebuilds, and verifies each reference movie twice (every `movies/*.tas` whose player and world are in the data folder, or the ones given)
+- [x] Port to Terraria 1.4.6.1 (2026-11-27): 1.4.6 seeds every world-update stream from the clock at launch (`Main._sessionRngSeed ^ name.GetHashCode()`), so TAS sessions now give `Main.SwapRandom` the movie's `Seed` instead, and the RNG tools compute stream seeds the same way. The other changed hooks still hold (version numbers, music invasion groups, hit-code proc sources, whip tag damage). `port-check` clean (my-run, run2 in sync across launches), `--new` normal and journey, a new world's movie verified twice, 4 teleports as forecast. Movies made on 1.4.5.8 replay differently on 1.4.6.1 (other stream seeds)
+- [ ] Release `v1.4.6.1-r1` (`build/package.ps1`)

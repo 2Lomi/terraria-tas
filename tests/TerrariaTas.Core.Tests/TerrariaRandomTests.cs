@@ -78,7 +78,7 @@ public class TerrariaRandomTests
     [Fact]
     public void DrawsUntilFindsAPositionFromTheSeed()
     {
-        // How the runtime finds a stream's position: every stream starts from the world seed.
+        // How the runtime finds a stream's position: every stream starts from a seed it knows.
         var stream = new TerrariaRandom(-987654);
         for (var i = 0; i < 123_456; i++)
             stream.NextDouble();

@@ -61,7 +61,7 @@ internal sealed class RngTracker
             return track.Start.DrawsUntil(current, MaxDrawsPerFrame);
 
         // Not there at the frame start: the stream was created during this frame.
-        return name == GameRng.SharedName ? -1 : new TerrariaRandom(GameRng.WorldSeed).DrawsUntil(current, MaxDrawsPerFrame);
+        return name == GameRng.SharedName ? -1 : new TerrariaRandom(GameRng.StreamSeed(name)).DrawsUntil(current, MaxDrawsPerFrame);
     }
 
     /// <summary>Every generator with its tracking and its full state. Call at a frame boundary.</summary>
@@ -104,10 +104,10 @@ internal sealed class RngTracker
         public static Track Discover(string name, TerrariaRandom current)
         {
             // Boundaries are visited every frame, so a stream missing at the previous one was created during the
-            // last frame, from the world seed. The shared generator is only known after a Reset.
+            // last frame, from its seed. The shared generator is only known after a Reset.
             var position = name == GameRng.SharedName
                 ? -1
-                : new TerrariaRandom(GameRng.WorldSeed).DrawsUntil(current, MaxDrawsPerFrame);
+                : new TerrariaRandom(GameRng.StreamSeed(name)).DrawsUntil(current, MaxDrawsPerFrame);
             return new Track(position, position, current);
         }
 
