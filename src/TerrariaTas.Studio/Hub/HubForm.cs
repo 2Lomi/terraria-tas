@@ -45,6 +45,9 @@ internal sealed class HubForm : ToolWindow
             new("items", "Items on the ground", () => new ItemListForm(State)),
             new("rng", "RNG streams", () => new RngStreamsForm(State)),
             new("forecast", "Drop forecast", () => new DropForecastForm(State, _settings)),
+            new("damage", "Damage rolls", () => new DamageRollsForm(State, _settings)),
+            new("teleport", "Teleport forecast", () => new TeleportForecastForm(State, _settings, ShowOnMap)),
+            new("map", "World map", () => new MapForm(State, _settings)),
             new("watch", "Memory watch", () => new WatchForm(State, _settings)),
         };
 
@@ -202,6 +205,12 @@ internal sealed class HubForm : ToolWindow
     {
         if (Open("forecast") is DropForecastForm forecast)
             forecast.Target(npcSlot);
+    }
+
+    private void ShowOnMap(int tileX, int tileY)
+    {
+        if (Open("map") is MapForm map)
+            map.CenterOn(tileX, tileY);
     }
 
     private void ApplyOnTop()

@@ -56,11 +56,8 @@ internal sealed class DropForecaster
 
     private ForecastColumn Column(string name, int rows, LootSandbox sandbox, List<DropOutcome> outcomes, Dictionary<string, int> outcomeIds)
     {
-        var column = new ForecastColumn { Stream = name, StartPosition = _rng.PositionOf(name) };
-        if (!GameRng.Streams.TryGetValue(name, out var stream))
-            return column; // the game has not created this stream yet
-
-        var cursor = GameRng.Clone(stream);
+        var column = new ForecastColumn { Stream = name, StartPosition = _rng.StartPositionOf(name) };
+        var cursor = GameRng.CloneForNextFrame(name);
         column.Cells = new int[rows];
         for (var offset = 0; offset < rows; offset++)
         {

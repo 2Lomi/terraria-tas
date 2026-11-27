@@ -67,6 +67,30 @@ internal class ToolWindow : Form
     {
     }
 
+    protected virtual void OnDamageForecastReceived(DamageForecast forecast)
+    {
+    }
+
+    protected virtual void OnHitRecorded(HitRecord hit)
+    {
+    }
+
+    protected virtual void OnTeleportForecastReceived(TeleportForecast forecast)
+    {
+    }
+
+    protected virtual void OnTeleportRecorded(TeleportRecord teleport)
+    {
+    }
+
+    protected virtual void OnMapChanged()
+    {
+    }
+
+    protected virtual void OnTeleportFocusChanged()
+    {
+    }
+
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
@@ -78,6 +102,12 @@ internal class ToolWindow : Form
         State.ForecastReceived += OnForecastReceived;
         State.IconsChanged += OnIconsChanged;
         State.HotkeysChanged += OnHotkeysChanged;
+        State.DamageForecastReceived += OnDamageForecastReceived;
+        State.HitRecorded += OnHitRecorded;
+        State.TeleportForecastReceived += OnTeleportForecastReceived;
+        State.TeleportRecorded += OnTeleportRecorded;
+        State.MapChanged += OnMapChanged;
+        State.TeleportFocusChanged += OnTeleportFocusChanged;
 
         // Show whatever is already known.
         OnConnectionChanged();
@@ -96,6 +126,12 @@ internal class ToolWindow : Form
         State.ForecastReceived -= OnForecastReceived;
         State.IconsChanged -= OnIconsChanged;
         State.HotkeysChanged -= OnHotkeysChanged;
+        State.DamageForecastReceived -= OnDamageForecastReceived;
+        State.HitRecorded -= OnHitRecorded;
+        State.TeleportForecastReceived -= OnTeleportForecastReceived;
+        State.TeleportRecorded -= OnTeleportRecorded;
+        State.MapChanged -= OnMapChanged;
+        State.TeleportFocusChanged -= OnTeleportFocusChanged;
         base.OnFormClosed(e);
     }
 

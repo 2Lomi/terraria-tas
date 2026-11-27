@@ -76,6 +76,8 @@ internal sealed class TasSession : IFrameDriver
     private readonly StatusDisplay _status = new();
     private readonly RngTracker _rng = new();
     private readonly KillLog _kills;
+    private readonly HitLog _hits;
+    private readonly TeleportLog _teleports;
     private readonly WorldInspector _inspector = new();
     private readonly InfoOverlay _overlay = new();
     private readonly SaveState?[] _slots = new SaveState?[UserSlots + 1];
@@ -123,6 +125,8 @@ internal sealed class TasSession : IFrameDriver
         _hotkeys = new HotkeyListener(hotkeys);
         _frames = new FrameLoop(this);
         _kills = new KillLog(_rng);
+        _hits = new HitLog(_rng);
+        _teleports = new TeleportLog(_rng);
     }
 
     private enum Phase
@@ -160,6 +164,8 @@ internal sealed class TasSession : IFrameDriver
         session._world.Install(harmony);
         session._worldLoad.Install(harmony);
         session._kills.Install(harmony);
+        session._hits.Install(harmony);
+        session._teleports.Install(harmony);
         session._overlay.Install(harmony);
         session._overlay.Lines = session.OverlayLines;
         if (options.Verify)
@@ -537,10 +543,19 @@ internal sealed class TasSession : IFrameDriver
         _framesAccounted = _framesRun;
         _stateVersion++;
         _rng.CompleteFrame();
+        var frame = _playback.Frame - 1;
         var kills = _kills.TakeRecords();
         foreach (var kill in kills)
-            kill.Frame = _playback.Frame - 1;
+            kill.Frame = frame;
         _studio?.AddKills(kills);
+        var hits = _hits.TakeRecords();
+        foreach (var hit in hits)
+            hit.Frame = frame;
+        _studio?.AddHits(hits);
+        var teleports = _teleports.TakeRecords();
+        foreach (var teleport in teleports)
+            teleport.Frame = frame;
+        _studio?.AddTeleports(teleports);
         _studio?.FrameCompleted(_playback.Frame);
     }
 

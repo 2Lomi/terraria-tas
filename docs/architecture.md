@@ -38,8 +38,9 @@ Runtime/
   Status/              window title status line
   Overlay/             frame, position and velocity drawn over the game (drawing only)
   Verification/        state fingerprints, RNG tracer, global-state audit
-  Inspection/          reads the world for Studio (player, NPCs, items, input as the game saw it, memory watch)
-  RngTools/            RNG stream positions, kill log, drop forecast
+  Inspection/          reads the world for Studio (player, NPCs, items, input as the game saw it, memory watch,
+                       the world map)
+  RngTools/            RNG stream positions, kill, hit and teleport logs, drop, damage and teleport forecasts
   Studio/              the named pipe Studio connects to (background threads, no game access)
   GameAccess/          shared typed access to game internals (RNG streams, version, global-state classes)
 ```
@@ -55,8 +56,9 @@ Runtime/
    keep running in an unknown state, and an unattended run must never hang.
 5. **Only the main thread touches the game, at a frame boundary.** Pipe I/O for Studio runs on background
    threads that only move bytes; `Session/StudioLink` reads the world and answers requests from `PlanTick`.
-   Tools that run game code to predict something (the drop forecast) work on copies of the RNG streams and
-   restore everything they touch, and must fail loudly if they cannot.
+   Tools that run game code to predict something (the drop, damage and teleport forecasts) work on copies of the RNG
+   streams and restore everything they touch, and must fail loudly if they cannot. Work too long for one tick (reading
+   the world map) is spread over paused ticks.
 
 ## A frame
 

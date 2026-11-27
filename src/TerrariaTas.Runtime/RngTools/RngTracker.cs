@@ -47,6 +47,12 @@ internal sealed class RngTracker
     /// <summary>Position of a stream at the current frame boundary, or -1 when unknown.</summary>
     public long PositionOf(string name) => _tracks.TryGetValue(name, out var track) ? track.Position : -1;
 
+    /// <summary>
+    /// Position of a stream where the next frame starts drawing from it (<see cref="GameRng.CloneForNextFrame"/>): 0 for
+    /// a stream the game has not created yet. Call at a frame boundary.
+    /// </summary>
+    public long StartPositionOf(string name) => GameRng.Streams.ContainsKey(name) ? PositionOf(name) : 0;
+
     /// <summary>Draws a generator made since the current frame started, or -1 when unknown. Usable in the middle of a frame.</summary>
     public long DrawsThisFrame(string name, UnifiedRandom generator)
     {

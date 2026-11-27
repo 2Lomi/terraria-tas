@@ -34,6 +34,8 @@ See [docs/research.md](docs/research.md) for the background of each item.
 - [ ] Reference movies covering combat, enemy spawns, bosses, liquids, events, inventory and crafting, each verified in CI-like runs on a dev machine
 - [ ] UI in `Draw`: verify inventory clicks, crafting, reforging, chests and NPC shops replay in sync
 - [x] Lazy textures: gameplay reads whether NPC and gore textures are loaded (NPC animation frames, gore sizes), and they loaded the first time something drew them, so earlier attempts changed later frames. All of them load at boot (0.3 s, about 140 MB)
+- [x] Background sizes: savestates put back `Main.backgroundWidth`/`backgroundHeight`, which the game records once when a background texture first loads, so a state saved before a background first showed left its size at 0 and its drawing skipped `Main.rand` draws (found by `--verify` replaying a teleport into the glowing mushroom biome). Savestates leave them alone now
+- [x] The install folder is never written: the game's crash log goes to the TAS data folder (the game wrote `client-crashlog.txt` into its working folder, the install folder)
 - [x] Minimized window skips `Draw` (XNA), which would desync: frames wait while it is minimized (drawing anyway would make Terraria shrink its screen to the minimum)
 - [x] Window size locked during a movie (resizing changed the screen size the game simulates with); `Resolution` limited to what Terraria can make, and a movie start at another size aborts
 - [x] World loading: the loading thread and the menu both drew from `Main.rand`, so a world with moving water (any new one) settled its liquids differently on every launch; liquids now draw from a generator of the loading thread while a world loads
@@ -61,6 +63,8 @@ See [docs/research.md](docs/research.md) for the background of each item.
 - [ ] Text input (chat, signs, naming) through the virtual keyboard (Terraria reads characters through IME/window messages), and recorded; until then, characters typed on the real keyboard are dropped on every frame the TAS feeds
 - [x] Memory watch: paths over game objects (`player.velocity.X`, `Main.npc[3].ai[0]`), shown live in Studio and logged per frame to CSV; fields only unless a property is called explicitly (`Name()`)
 - [ ] TAS Studio editing: a piano roll over the timeline, editing input from Studio, and a "greenzone" of per-frame savestates
+- [x] World map in Studio: every tile in the game's own map colors, fully revealed, read from the running game at a paused frame; pan and zoom, a white crosshair pointer reading the tile, compass and depth under it; you, the spawn and teleport destinations marked
+- [ ] World map: the map travels as 4-byte palette indexes and lengths (24 MB for a large world); bytes and variable-length lengths would make it several times smaller
 
 ## M3: RNG tools
 
@@ -68,7 +72,13 @@ See [docs/research.md](docs/research.md) for the background of each item.
 - [x] Drop forecast: item and coin drops of any NPC for every offset of the kill streams, by running the game's drop code on copies of the stream, plus a kill log with each real kill's stream and offset (Studio "Drop forecast")
 - [ ] Drop forecast for bosses: simulate the death events (potions, hearts) so coins and hearts after them are exact too
 - [ ] Kill cost: predict how many draws a given hit spends before the loot (crit, damage, sounds, particles), so the forecast row of a planned kill is known without trying it
-- [ ] Oracle predictions by running real game code on a cloned RNG: reforge result, crafted prefix, damage roll and crit
+- [x] Damage rolls: crit and damage of the held weapon's next hit for every offset of the swing and projectile streams (the game's `Main.DamageVar` on copies of the streams), what a target loses, and a hit log with each real hit's offset (Studio "Damage rolls")
+- [ ] Damage rolls of special hits: timed crits, monk armor, whip tags, Pyroclast, banners and the like draw between the rolls or change the damage
+- [ ] Oracle predictions by running real game code on a cloned RNG: reforge result, crafted prefix
+- [x] Teleport forecast: where a Teleportation Potion lands for every offset of `UpdatePlayers` (the game's `Utils.CheckForGoodTeleportationSpot` on copies of the stream), with compass and depth readings, a target picked on the world map, and a teleport log (Studio "Teleport forecast")
+- [ ] Teleport forecast for the Magic Conch and the Demon Conch
+- [ ] Teleport planning across frames: which upcoming frame lands where for a given input, by replaying from a savestate (with the brute-force search API)
+- [x] Live check of the damage rolls, teleport forecast and world map (2026-11-23): 22 hits (pickaxe swings, throwing knives, shortsword stabs, arrows, crits) and 4 teleports all as forecast, with a forecast at every frame boundary; the potion rolls on the 16th frame of its use; `--verify` in sync on combat and teleport movies; a large world's map reads in 1.2 s. Found and fixed: town NPCs' arrows and falling stars counted as the player's projectiles, no forecast at frame 0 (the streams do not exist yet), shots forecast without their ammo's damage, map labels covering each other
 - [ ] Brute-force search API: from a savestate, try N delays or input variants, score the outcome, report the best
 - [ ] NPC spawn forecast (`SpawnNPCs` stream): which frames spawn what, given the player's path
 - [ ] Event forecast at dusk/dawn (`UpdateTime`): Blood Moon, eclipse, invasions, meteors, traveling merchant

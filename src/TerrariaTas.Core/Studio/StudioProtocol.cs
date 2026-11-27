@@ -10,7 +10,7 @@ public static class StudioProtocol
     public const string PipeName = "TerrariaTas.Studio";
 
     /// <summary>Bumped on any change to a message layout. Studio refuses to talk to another version.</summary>
-    public const int Version = 4;
+    public const int Version = 5;
 
     /// <summary>Upper bound for one frame. Anything larger means the stream is corrupted.</summary>
     public const int MaxFrameBytes = 64 * 1024 * 1024;

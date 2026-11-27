@@ -12,8 +12,10 @@ namespace TerrariaTas.Runtime.Determinism;
 /// does not advance (some AI reads the frame) and a gore has no size (its collision box decides where it lands and
 /// what it touches). So what the game happened to draw before (an earlier attempt, frames played before loading a
 /// savestate) changed the frames after it. Loaded up front, every attempt sees the same thing.
-/// Item and projectile textures are always loaded right before gameplay measures them, and tile, wall and background
-/// textures only matter to drawing.
+/// Item and projectile textures are always loaded right before gameplay measures them, and tile and wall textures only
+/// matter to drawing. Background drawing draws from the shared RNG depending on the background's size, but it loads a
+/// background at once the first time it needs one, so savestates only have to leave the recorded sizes alone
+/// (SaveStates/StaticFieldState).
 /// </summary>
 internal static class TexturePreload
 {

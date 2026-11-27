@@ -53,9 +53,9 @@ internal sealed class SessionView
 }
 
 /// <summary>
-/// Feeds TAS Studio: the session status, world snapshots and drop forecasts at paused frame boundaries,
-/// kill records as they happen. Commands from Studio go back to the session, which runs them like hotkeys.
-/// Lives in Session/ because it gathers data from several features.
+/// Feeds TAS Studio: the session status, world snapshots, the world map and the forecasts (drops, damage rolls,
+/// teleports) at paused frame boundaries, kill, hit and teleport records as they happen. Commands from Studio go back
+/// to the session, which runs them like hotkeys. Lives in Session/ because it gathers data from several features.
 /// </summary>
 internal sealed class StudioLink
 {
@@ -63,21 +63,35 @@ internal sealed class StudioLink
     // While paused, every change goes out at once.
     private static readonly TimeSpan StatusInterval = TimeSpan.FromMilliseconds(15);
     private static readonly TimeSpan MovieInterval = TimeSpan.FromMilliseconds(250);
+
+    // Reading the map takes about a second for a large world: a share of it on each paused tick keeps the game responsive.
+    private static readonly TimeSpan MapTimePerTick = TimeSpan.FromMilliseconds(40);
     private const int KillHistory = 200;
+    private const int HitHistory = 200;
+    private const int TeleportHistory = 100;
 
     private readonly StudioServer _server;
     private readonly WorldInspector _inspector;
     private readonly RngTracker _rng;
     private readonly DropForecaster _forecaster;
+    private readonly DamageForecaster _damage;
+    private readonly TeleportForecaster _teleports;
     private readonly Hello _hello;
     private readonly HotkeyBindings _hotkeys;
     private readonly ItemIconReader _iconReader = new();
     private readonly HashSet<int> _sentIcons = new();
     private readonly Queue<KillRecord> _kills = new();
+    private readonly Queue<HitRecord> _hits = new();
+    private readonly Queue<TeleportRecord> _teleportLog = new();
     private readonly Stopwatch _sinceStatus = Stopwatch.StartNew();
     private readonly Stopwatch _sinceMovie = Stopwatch.StartNew();
     private readonly Watches _watches;
     private ForecastRequest? _pendingForecast;
+    private DamageRequest? _pendingDamage;
+    private TeleportRequest? _pendingTeleport;
+    private MapRequest? _pendingMap;
+    private int _mapRequestId = -1;
+    private int _mapNextRow;
     private string? _notice;
     private bool _wasConnected;
     private IReadOnlyList<InputLine> _sentLines = Array.Empty<InputLine>();
@@ -92,6 +106,8 @@ internal sealed class StudioLink
         _inspector = inspector;
         _rng = rng;
         _forecaster = new DropForecaster(rng);
+        _damage = new DamageForecaster(rng);
+        _teleports = new TeleportForecaster(rng);
         _hello = hello;
         _hotkeys = new HotkeyBindings { Map = hotkeys };
         _watches = new Watches(watchLogPath);
@@ -129,6 +145,12 @@ internal sealed class StudioLink
                 commands.Add(command);
             else if (message is ForecastRequest request)
                 _pendingForecast = request; // a newer request makes the older ones moot
+            else if (message is DamageRequest damage)
+                _pendingDamage = damage;
+            else if (message is TeleportRequest teleport)
+                _pendingTeleport = teleport;
+            else if (message is MapRequest map)
+                _pendingMap = map;
             else if (message is WatchList list)
                 _notice = _watches.Set(list) ?? _notice;
         }
@@ -147,6 +169,10 @@ internal sealed class StudioLink
             _server.Send(kill);
         }
     }
+
+    public void AddHits(IEnumerable<HitRecord> hits) => Record(hits, _hits, HitHistory);
+
+    public void AddTeleports(IEnumerable<TeleportRecord> teleports) => Record(teleports, _teleportLog, TeleportHistory);
 
     public void Publish(SessionView view)
     {
@@ -168,6 +194,9 @@ internal sealed class StudioLink
         if (view.CanInspect)
             PublishWorld(view);
         AnswerForecast(view);
+        AnswerDamage(view);
+        AnswerTeleport(view);
+        PublishMap(view);
     }
 
     private void Greet()
@@ -179,10 +208,29 @@ internal sealed class StudioLink
         _sentStatus = "";
         _sentWorldVersion = -1;
         _sentIcons.Clear();
+        _mapRequestId = -1; // a map being sent was for the previous Studio
         foreach (var kill in _kills)
         {
             SendIcons(new[] { kill.Drops });
             _server.Send(kill);
+        }
+
+        foreach (var hit in _hits)
+            _server.Send(hit);
+        foreach (var teleport in _teleportLog)
+            _server.Send(teleport);
+    }
+
+    /// <summary>Keeps the latest records for the next Studio to connect, and sends them to the one connected.</summary>
+    private void Record<T>(IEnumerable<T> records, Queue<T> history, int length)
+        where T : StudioMessage
+    {
+        foreach (var record in records)
+        {
+            history.Enqueue(record);
+            if (history.Count > length)
+                history.Dequeue();
+            _server.Send(record);
         }
     }
 
@@ -274,21 +322,39 @@ internal sealed class StudioLink
         _server.Send(snapshot);
     }
 
+    /// <summary>What to do with a request that needs a paused frame boundary inside a world.</summary>
+    private enum Readiness
+    {
+        Answer,
+        Refuse,
+
+        /// <summary>A frame advance is running this tick: answer at the next boundary.</summary>
+        Wait,
+    }
+
+    private static Readiness ReadinessFor(SessionView view) =>
+        view.CanInspect ? Readiness.Answer
+        : view.State != PlaybackState.Paused || !view.InWorld ? Readiness.Refuse
+        : Readiness.Wait;
+
     private void AnswerForecast(SessionView view)
     {
         if (_pendingForecast is not { } request)
             return;
 
-        if (view.CanInspect)
+        var readiness = ReadinessFor(view);
+        if (readiness == Readiness.Wait)
+            return;
+
+        _pendingForecast = null;
+        if (readiness == Readiness.Answer)
         {
-            _pendingForecast = null;
             var forecast = Forecast(request, view.Frame);
             SendIcons(forecast.Outcomes);
             _server.Send(forecast);
         }
-        else if (view.State != PlaybackState.Paused || !view.InWorld)
+        else
         {
-            _pendingForecast = null;
             _server.Send(new DropForecast
             {
                 RequestId = request.RequestId,
@@ -297,24 +363,114 @@ internal sealed class StudioLink
                 Error = "Pause the game inside a world to forecast drops.",
             });
         }
-
-        // Otherwise a frame advance is running this tick: answer at the next boundary.
     }
 
+    private void AnswerDamage(SessionView view)
+    {
+        if (_pendingDamage is not { } request)
+            return;
+
+        var readiness = ReadinessFor(view);
+        if (readiness == Readiness.Wait)
+            return;
+
+        _pendingDamage = null;
+        _server.Send(readiness == Readiness.Answer
+            ? Predict("Damage forecast", () => _damage.Forecast(request, view.Frame), error => DamageError(request, view.Frame, error))
+            : DamageError(request, view.Frame, "Pause the game inside a world to forecast damage."));
+    }
+
+    private static DamageForecast DamageError(DamageRequest request, int frame, string error) =>
+        new() { RequestId = request.RequestId, Frame = frame, TargetSlot = request.TargetSlot, Error = error };
+
+    private void AnswerTeleport(SessionView view)
+    {
+        if (_pendingTeleport is not { } request)
+            return;
+
+        var readiness = ReadinessFor(view);
+        if (readiness == Readiness.Wait)
+            return;
+
+        _pendingTeleport = null;
+        _server.Send(readiness == Readiness.Answer
+            ? Predict("Teleport forecast", () => _teleports.Forecast(request, view.Frame), error => TeleportError(request, view.Frame, error))
+            : TeleportError(request, view.Frame, "Pause the game inside a world to forecast teleports."));
+    }
+
+    private static TeleportForecast TeleportError(TeleportRequest request, int frame, string error) =>
+        new() { RequestId = request.RequestId, Frame = frame, Kind = request.Kind, Error = error };
+
     /// <summary>
-    /// A failing forecast is reported to Studio instead of ending the TAS session (and its savestates):
+    /// Sends the world map a share at a time, on paused frame boundaries inside a world; a request waits for one. When
+    /// frames run in between, later rows show a later frame (each message says which).
+    /// </summary>
+    private void PublishMap(SessionView view)
+    {
+        if (!view.InWorld && _mapRequestId >= 0)
+        {
+            // The world is gone; a pending request waits for the next one.
+            _server.Send(new MapHeader { RequestId = _mapRequestId, Error = "The world closed while the map was being read." });
+            _mapRequestId = -1;
+        }
+
+        if (!view.CanInspect)
+            return;
+
+        if (_pendingMap is { } request)
+        {
+            _pendingMap = null;
+            _mapRequestId = request.RequestId;
+            _mapNextRow = 0;
+            _server.Send(WorldMapReader.Header(_mapRequestId, view.Frame));
+        }
+
+        var started = Stopwatch.StartNew();
+        while (_mapRequestId >= 0 && started.Elapsed < MapTimePerTick)
+        {
+            MapRows rows;
+            try
+            {
+                rows = WorldMapReader.ReadRows(_mapRequestId, view.Frame, _mapNextRow, WorldMapReader.RowsPerMessage);
+            }
+            catch (Exception e)
+            {
+                // Reading only reads: a failure leaves the game as it was, so it stops the map, not the session.
+                Log.Error("Reading the world map failed: " + e);
+                var header = WorldMapReader.Header(_mapRequestId, view.Frame);
+                header.Error = "Reading the map failed: " + e.Message;
+                _server.Send(header);
+                _mapRequestId = -1;
+                return;
+            }
+
+            _server.Send(rows);
+            _mapNextRow += rows.RowCount;
+            if (rows.RowCount == 0 || _mapNextRow >= WorldMapReader.Height)
+                _mapRequestId = -1;
+        }
+    }
+
+    private DropForecast Forecast(ForecastRequest request, int frame) =>
+        Predict(
+            "Drop forecast",
+            () => _forecaster.Forecast(request, frame),
+            error => new DropForecast { RequestId = request.RequestId, Frame = frame, NpcSlot = request.NpcSlot, Error = error });
+
+    /// <summary>
+    /// A failing prediction is reported to Studio instead of ending the TAS session (and its savestates):
     /// every roll restores the game in a finally block. Only a detected leak stops the session.
     /// </summary>
-    private DropForecast Forecast(ForecastRequest request, int frame)
+    private static T Predict<T>(string what, Func<T> predict, Func<string, T> failure)
     {
         try
         {
-            return _forecaster.Forecast(request, frame);
+            return predict();
         }
         catch (Exception e) when (e is not GameStateChangedException)
         {
-            Log.Error("Drop forecast failed: " + e);
-            return new DropForecast { RequestId = request.RequestId, Frame = frame, NpcSlot = request.NpcSlot, Error = "The forecast failed: " + e.Message };
+            Log.Error(what + " failed: " + e);
+            return failure("The forecast failed: " + e.Message);
         }
     }
 }

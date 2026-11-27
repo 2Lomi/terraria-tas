@@ -397,8 +397,6 @@ internal sealed class DropForecastForm : ToolWindow
             return $"+{row}";
 
         var cells = _forecast.Columns[column - 1].Cells;
-        if (cells.Length == 0)
-            return row == 0 ? "the game has not created this stream yet" : "";
         return row < cells.Length ? _forecast.Outcomes[cells[row]].Describe() : "";
     }
 

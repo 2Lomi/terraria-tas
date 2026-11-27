@@ -17,7 +17,15 @@ internal sealed class StaticFieldState
     private const int MaxArrayLength = 1 << 20;
 
     // Volumes stay as the user sets them; the sound volume the game logic sees is pinned elsewhere.
-    private static readonly HashSet<string> Excluded = new() { "Main.musicVolume", "Main.soundVolume", "Main.ambientVolume" };
+    // The sizes of the background textures loaded so far are not game state either: Main.LoadBackground sets one when it
+    // loads that texture, the first time a background needs it, and the texture stays loaded. Restoring the sizes of a
+    // state saved before then would put that size back to 0 for good, and drawing a background of size 0 stops early,
+    // before some of its draws from the shared RNG (the mushroom background desynced after a teleport this way).
+    private static readonly HashSet<string> Excluded = new()
+    {
+        "Main.musicVolume", "Main.soundVolume", "Main.ambientVolume",
+        "Main.backgroundWidth", "Main.backgroundHeight",
+    };
 
     private static readonly object NotCaptured = new();
 

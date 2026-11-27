@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -67,7 +68,7 @@ internal static class Surface
     /// <summary>Compares a recorded surface with another game build. Returns the number of problems.</summary>
     public static int Check(List<SurfaceEntry> recorded, ModuleDefinition game, TextWriter report)
     {
-        var methods = game.GetTypes().SelectMany(t => t.Methods).GroupBy(IlFingerprint.Name).ToDictionary(g => g.Key, g => g.First());
+        var methods = MethodsByName(game);
         var problems = 0;
         var unchanged = 0;
         foreach (var entry in recorded)
@@ -109,12 +110,46 @@ internal static class Surface
         if (reference is FieldReference field)
             return new SurfaceEntry("field", "-", $"{IlFingerprint.Name(field.DeclaringType)}::{field.Name}");
 
-        var method = FindMethod(game, IlFingerprint.Name(reference));
-        return new SurfaceEntry("calls", method == null ? "missing" : IlFingerprint.Of(method), IlFingerprint.Name(reference));
+        var name = IlFingerprint.Name(reference);
+        var method = MethodsByName(game).GetValueOrDefault(name);
+        return new SurfaceEntry("calls", method == null ? "missing" : IlFingerprint.Of(method), name);
     }
 
-    private static MethodDefinition? FindMethod(ModuleDefinition game, string fullName) =>
-        game.GetTypes().SelectMany(t => t.Methods).FirstOrDefault(m => IlFingerprint.Name(m) == fullName);
+    private static Dictionary<string, MethodDefinition>? _methodsByName;
+    private static ModuleDefinition? _methodsOf;
+
+    /// <summary>
+    /// Every game method by name, generic ones also by the name a call gives them: a call refers to a generic method with
+    /// its type parameters as positions ("!!0 Terraria.Utils::Clamp(!!0,!!0,!!0)"), its definition names them.
+    /// </summary>
+    private static Dictionary<string, MethodDefinition> MethodsByName(ModuleDefinition game)
+    {
+        if (_methodsOf == game && _methodsByName != null)
+            return _methodsByName;
+
+        var methods = new Dictionary<string, MethodDefinition>(StringComparer.Ordinal);
+        foreach (var method in game.GetTypes().SelectMany(t => t.Methods))
+        {
+            methods.TryAdd(IlFingerprint.Name(method), method);
+            if (method.HasGenericParameters)
+                methods.TryAdd(CallName(method), method);
+        }
+
+        _methodsOf = game;
+        return _methodsByName = methods;
+    }
+
+    /// <summary>"T Terraria.Utils::Clamp&lt;T&gt;(T,T,T)" as a call names it: "!!0 Terraria.Utils::Clamp(!!0,!!0,!!0)".</summary>
+    private static string CallName(MethodDefinition method)
+    {
+        var name = IlFingerprint.Name(method);
+        var member = name.IndexOf("::" + method.Name, StringComparison.Ordinal) + 2 + method.Name.Length;
+        if (member < name.Length && name[member] == '<')
+            name = name.Remove(member, name.IndexOf('>', member) - member + 1);
+        foreach (var parameter in method.GenericParameters)
+            name = Regex.Replace(name, $@"(?<![\w.]){Regex.Escape(parameter.Name)}(?![\w.])", "!!" + parameter.Position);
+        return name;
+    }
 
     private static bool MemberExists(ModuleDefinition game, string member)
     {

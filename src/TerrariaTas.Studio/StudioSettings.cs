@@ -21,6 +21,17 @@ internal sealed class StudioSettings
     /// <summary>How many gray shades the drop forecast cycles through, by stream position.</summary>
     public int ForecastShades { get; set; } = 6;
 
+    public int DamageRows { get; set; } = 500;
+
+    // Each row runs the game's search for a landing spot, up to 1000 tries: the game waits for them on every paused frame.
+    public int TeleportRows { get; set; } = 500;
+
+    /// <summary>How close to the target a teleport destination must land to count as a match, in tiles.</summary>
+    public int TeleportRadius { get; set; } = 25;
+
+    /// <summary>How many upcoming teleport destinations the world map marks.</summary>
+    public int MapDestinations { get; set; } = 20;
+
     public List<string> OpenTools { get; set; } = new();
 
     /// <summary>The paths of the memory watch.</summary>

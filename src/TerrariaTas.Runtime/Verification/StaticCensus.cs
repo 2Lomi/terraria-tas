@@ -43,6 +43,7 @@ internal static class StaticCensus
     // it). And the title logo, rolled at startup. No gameplay reads them.
     // The sizes of the background textures loaded so far, which depend on what the title screen drew before the world
     // loaded: only Main's background drawing reads them, and it loads a background at once when it first needs one.
+    // Savestates leave them alone for that reason (SaveStates/StaticFieldState).
     private static readonly HashSet<string> Ignored = new()
     {
         "Main.fpsCount", "Main.drawsCountedForFPS", "Main.updatesCountedForFPS", "Main.uCount",

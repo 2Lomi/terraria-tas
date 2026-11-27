@@ -26,7 +26,9 @@ Early, but the core loop works end to end:
 - `GameDiff` pinpoints what a Terraria update changes for the tool ([porting guide](docs/porting.md)).
 - TAS Studio, a separate app with tool windows: input display, player position and velocity to the sub-pixel,
   timeline with savestates, monster/NPC/item lists, every RNG stream with upcoming values, drop forecasts with
-  a kill log, and a memory watch of any game value, logged per frame on request ([guide](docs/studio.md)).
+  a kill log, damage rolls of the held weapon with a hit log, Teleportation Potion destinations with a teleport log, a
+  map of the whole world with a coordinate crosshair, and a memory watch of any game value, logged per frame on
+  request ([guide](docs/studio.md)).
 - Hot reload: save the movie in a text editor and the game follows, replaying from a savestate when it already
   played through the change.
 
@@ -108,7 +110,8 @@ does not start from a file that changed (a world played in, a character played w
 file back. Movies made before checksums existed play with a warning, and `--edit` adds the checksums the first time
 (keeping the previous file as `<movie>.tas.bak`). To share a movie, share the `.tas` file with its two files.
 
-TAS sessions never write to these files, nor to your normal saves. They never write the data folder's
+TAS sessions never write to these files, nor to your normal saves, nor into the Terraria install folder (when the game
+logs an error there, such as a crash, the log goes to the data folder's `client-crashlog.txt`). They never write the data folder's
 `achievements.dat`, and with a movie loaded the game never saves its `config.json` and `input profiles.json`: the
 movie's settings and key bindings never become yours. What TAS sessions write there is the window size and mode, into
 `config.json` before launch because Terraria creates its window from it (with a language and a client id when the
@@ -184,8 +187,10 @@ Saving the file while recording is fine too: the edit wins. Frames recorded but 
 Tool windows that read the game while you TAS: what is pressed (and what the movie presses next), the player's
 position, velocity and timers exactly as the game holds them, the movie
 around the current frame with load/save buttons on its savestates, monsters, town NPCs and items, every RNG
-stream with its upcoming values, and a drop forecast that shows, for any monster, after how many random draws
-the item you want drops, and a memory watch of any value you name (`player.velocity.X`, `Main.npc[3].ai[0]`). Start
+stream with its upcoming values, a drop forecast that shows, for any monster, after how many random draws
+the item you want drops, the crit and damage of your weapon's next hits by draw, where a Teleportation Potion lands
+by draw, a map of the whole world to pan and zoom with a crosshair that reads the tile, compass and depth under it,
+and a memory watch of any value you name (`player.velocity.X`, `Main.npc[3].ai[0]`). Start
 it before or after the game; it connects by itself. `run.ps1` builds and
 opens it for you. Details in [docs/studio.md](docs/studio.md).
 

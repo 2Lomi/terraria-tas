@@ -13,11 +13,20 @@ public enum MessageType : byte
     KillRecord = 6,
     ItemIcons = 7,
     HotkeyBindings = 8,
+    TeleportForecast = 9,
+    TeleportRecord = 10,
+    DamageForecast = 11,
+    HitRecord = 12,
+    MapHeader = 13,
+    MapRows = 14,
 
     // Studio to game.
     Command = 64,
     ForecastRequest = 65,
     WatchList = 66,
+    TeleportRequest = 67,
+    DamageRequest = 68,
+    MapRequest = 69,
 }
 
 /// <summary>A message of the Studio link. <see cref="StudioCodec"/> turns it into bytes and back.</summary>

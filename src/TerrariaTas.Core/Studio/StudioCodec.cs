@@ -33,9 +33,18 @@ public static class StudioCodec
             MessageType.KillRecord => KillRecord.Read(reader),
             MessageType.ItemIcons => ItemIcons.Read(reader),
             MessageType.HotkeyBindings => HotkeyBindings.Read(reader),
+            MessageType.TeleportForecast => TeleportForecast.Read(reader),
+            MessageType.TeleportRecord => TeleportRecord.Read(reader),
+            MessageType.DamageForecast => DamageForecast.Read(reader),
+            MessageType.HitRecord => HitRecord.Read(reader),
+            MessageType.MapHeader => MapHeader.Read(reader),
+            MessageType.MapRows => MapRows.Read(reader),
             MessageType.Command => Command.Read(reader),
             MessageType.ForecastRequest => ForecastRequest.Read(reader),
             MessageType.WatchList => WatchList.Read(reader),
+            MessageType.TeleportRequest => TeleportRequest.Read(reader),
+            MessageType.DamageRequest => DamageRequest.Read(reader),
+            MessageType.MapRequest => MapRequest.Read(reader),
             _ => throw new InvalidDataException($"Unknown Studio message type {(byte)type}."),
         };
     }

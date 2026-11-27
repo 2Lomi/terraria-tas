@@ -90,6 +90,7 @@ and how each is handled (`Runtime/Determinism`, `Runtime/Frames`):
 | Characters typed into chat, signs and names arrive through window messages, apart from the keyboard state | Typing during a movie or a recording would not replay | Dropped on every frame the TAS feeds the input |
 | Animated forest backgrounds take their textures from the animation frame | Left at the title screen's last frame | Set again at the movie start with the game's own animation step |
 | NPC and gore textures load the first time something draws them and stay loaded for the process, and gameplay reads whether they are: before, an NPC's animation frame does not advance (some AI reads it) and a gore has no size (its collision box) | Earlier attempts, and frames played before loading a savestate, changed later frames | All NPC and gore textures loaded at boot (`TexturePreload`, about 130 MB of the 32-bit process). Item and projectile textures are loaded right before gameplay measures them; tiles, walls and backgrounds only matter to drawing |
+| Background textures load the first time a background is drawn (at once, `ImmediateLoad`), and `Main.LoadBackground` records their size in `Main.backgroundWidth`/`backgroundHeight` then, never again. Drawing a background of size 0 stops early, before some of its `Main.rand` draws (the mushroom background draws three) | Savestates restored those sizes like any static value: loading a state saved before a background was first drawn put its size back to 0 for good, and a replay through a teleport into another biome drew fewer numbers (`--verify` on a Teleportation Potion movie, frame 36, `DrawSurfaceBG_Mushroom`) | Savestates leave the sizes alone (`SaveStates/StaticFieldState`): they describe what this process loaded, and every background loads with its size the first time it is needed |
 | Key bindings and the forward zoom mode (`input profiles.json`) | The same keys did something else on another configuration | Part of the movie header (`Bind` lines, `ForwardZoom`), fresh-install values when absent ([format](movie-format.md#key-bindings)); switching control profiles does nothing during a movie |
 | Resource packs | They can replace sounds (whose length decides random rolls, see the sound row), fonts and texts (which place buttons); the game itself rejects textures whose size differs from vanilla | TAS sessions use the game's own content (`AssetSourceController.UseResourcePacks` gets no packs); the selection stays in `config.json` |
 | Achievements (`achievements.dat`, written as they complete) | The inventory's achievement card (hovering it keeps clicks from the world) and the unlock popups (they catch clicks) depended on earlier sessions | None completed at the movie start, the file is never written, progress and popups in savestates |
@@ -169,6 +170,7 @@ Where the things speedrunners care about roll:
 | Plantera bulbs, life fruit, chlorophyte, grass spread | random tile updates | `UpdateWorldGen` |
 | Reforging, crafting prefixes, bags and crates opened from the inventory | UI code inside `Draw` | shared `Main.rand` |
 | Wind, rain, thunder | `Main.UpdateWeather` | shared `Main.rand` |
+| Teleportation Potion destination (`Utils.CheckForGoodTeleportationSpot`) | item use, `Player.ItemCheck` | `UpdatePlayers` |
 
 Three ways to predict, from simplest to most specific:
 
@@ -218,6 +220,66 @@ What the hit spends depends on more than the inputs:
 
 TAS Studio's drop forecast (docs/studio.md) runs the three drop methods of `NPCLoot` on copies of a stream for
 every offset and undoes what they spawned; the kill log records the stream and offset each real kill used.
+
+### Damage rolls
+
+A hit by the player rolls on the stream of the phase it happens in, crit first, then damage:
+
+- A swing (`Player.ProcessHitAgainstNPC`, `UpdatePlayers`): `Main.rand.Next(1, 101) <= GetWeaponCrit(item)`, drawn
+  for every hit, even at 0% crit. Then modifiers that draw nothing in the ordinary case (rapid attack bonus, banners,
+  the parry bonus, a few weapons), then `Main.DamageVar(damage, luck)`.
+- A projectile (`Projectile.Damage_PVE_Inner`, `UpdateProjectiles`): the damage starts as the projectile's `damage`
+  times `Damage_GetProjectileSpecificDamageMultiplier` (flails swung ×1.2 or thrown ×2, rockets ×2 on their main
+  target, mines ×3 lying still...), with a few more changes by type (Stardust Dragon size, Desert Tiger count). Then,
+  for projectiles of a player (not traps or NPC projectiles), one `Next(1, 101)` per damage class the projectile has, melee, ranged and magic in that order, against
+  the player's crit of that class plus the projectile's `bonusCritChance`: every one is drawn, even after a success.
+  Minions have no class and roll none. Then timed crits, monk armor and Golem's sentry backpack can draw, whip tags can
+  change the damage and the crit, and `Main.DamageVar` rolls, without luck for traps and NPC projectiles. In single
+  player those also have the local player as `owner` (the Guide's arrows, falling stars, which are `trap` projectiles):
+  only `Projectile.OwnedBySomeone` (neither `npcProj` nor `trap`) tells the player's own apart.
+- `Main.DamageVar(dmg, luck)`: `dmg * (1 + Next(-15, 16) / 100)`; with luck above 0, a `NextFloat() < luck` draw and, if
+  it passes, a second roll keeping the higher; below 0 the same keeping the lower; rounded. One draw at luck 0, two or
+  three otherwise.
+- `NPC.StrikeNPC_Inner`: the NPC loses `max(1, damage - defense / 2)`, doubled on a crit, times its
+  `takenDamageMultiplier` when above 1. Armor penetration was added to the damage before
+  (`NPC.checkArmorPenetration`: half the penetration, at most half the defense).
+- The hit effects (sounds, blood, the death particles) come after these rolls.
+
+TAS Studio's damage rolls run the crit rolls and `Main.DamageVar` on copies of the streams for every offset; the hit
+log measures the offset at the damage roll of each real hit and subtracts the crit rolls.
+
+### Random teleports
+
+`Player.TeleportationPotion` runs from `Player.ItemCheck` while the potion is used (use time 17): the use timer is set
+on the first frame of the use and counts down once per frame before the potion's code, which teleports when it reads
+2, so on the 16th frame of the use (checked in the game: a use starting on frame 21 rolled on frame 36). It runs during the players'
+update, so it rolls on `UpdatePlayers`, where bubble blocks are not solid: the world update clears
+`Main.tileSolid[379]` before the players' update and sets it back after `UpdateTime`.
+
+The destination is `Utils.CheckForGoodTeleportationSpot`: a tile at `Next(100, maxTilesX - 98)`,
+`Next(100, UnderworldLayer + 102)` (two draws per attempt, clamped 45 tiles from the edges), then a fall of less than
+100 tiles to a floor. An attempt fails on solid tiles at the spot, Lihzahrd walls before Plantera, dungeon walls below
+the surface before Skeletron, lava or hurting tiles where the player ends up, no room to move a tile in each direction
+(`Collision.TileCollision`), and in the dual-dungeon seed a spot walled in by unbreakable walls. After 1000 attempts
+the player stays where it is. Nothing else is random: the result depends on the stream, the tiles, the player's size
+and gravity, and those world flags (the velocity it is given only reaches a collision call whose result is unused).
+It writes the collision flags (`Collision.up`, `down`, `stair`, `honey`...), which every collision check sets before
+reading them, and blank tiles into the null slots its fall reaches under a world smaller than the largest (the tile
+array is made for the largest world). The forecast puts both back.
+
+The other random teleports search differently: `Player.MagicConch` (to an ocean) with
+`TeleportHelpers.RequestMagicConchTeleportPosition`, `Player.DemonConch` with up to nine
+`CheckForGoodTeleportationSpot` calls around the middle of the underworld and a `Next(2)` for the side. TAS Studio's
+teleport forecast covers the potion; the teleport log records the stream, offset and landing of each one drunk.
+
+### The world map
+
+The map's colors come from `MapHelper`: `CreateMapTile(x, y, light)` picks a map type for a tile (its block, else its
+wall or liquid, else a background by depth: a sky gradient, dirt, rock or the underworld), and `GetMapTileXnaColor`
+gives its color, with paint and light. A cave background turns snowy near snow found on the player's exploration map
+(`Main.Map`, allocated once at the largest world size): the check reads 36 tiles around the tile, which near the left
+edge falls before the start of the array. TAS Studio's world map calls both with full light for every tile, and paints
+the 40 unreachable tiles along each edge (`Main.offLimitBorderTiles`) itself.
 
 ## 7. Following game updates
 

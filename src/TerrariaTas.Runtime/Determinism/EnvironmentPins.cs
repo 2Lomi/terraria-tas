@@ -243,6 +243,43 @@ internal sealed class EnvironmentPins
             return false;
         }
 
+        // The game appends its errors to a crash log in its working folder, which TAS sessions set to the install folder
+        // (the audio engine opens its files from there): the log goes to the TAS data folder instead, so that TAS sessions
+        // never write into the install folder. These are the writers a TAS session can reach: the crash handler, the
+        // check of a world file and the loading of the player's map (map saving is off, the others are multiplayer).
+        [HarmonyPatch(typeof(Terraria.Program), "DisplayException"), HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> CrashLogOfCrashes(IEnumerable<CodeInstruction> instructions) =>
+            CrashLogInDataFolder(instructions, "Program.DisplayException");
+
+        [HarmonyPatch(typeof(WorldFile), nameof(WorldFile.ValidateWorld)), HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> CrashLogOfWorldChecks(IEnumerable<CodeInstruction> instructions) =>
+            CrashLogInDataFolder(instructions, "WorldFile.ValidateWorld");
+
+        [HarmonyPatch(typeof(WorldMap), nameof(WorldMap.Load)), HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> CrashLogOfMapLoads(IEnumerable<CodeInstruction> instructions) =>
+            CrashLogInDataFolder(instructions, "WorldMap.Load");
+
+        private static IEnumerable<CodeInstruction> CrashLogInDataFolder(IEnumerable<CodeInstruction> instructions, string method)
+        {
+            var code = instructions.ToList();
+            var replaced = 0;
+            foreach (var instruction in code.Where(instruction => instruction.Is(OpCodes.Ldstr, CrashLogName)))
+            {
+                instruction.opcode = OpCodes.Call;
+                instruction.operand = AccessTools.Method(typeof(Hooks), nameof(CrashLogPath));
+                replaced++;
+            }
+
+            if (replaced == 0)
+                throw new InvalidOperationException($"{method} no longer writes {CrashLogName}: review EnvironmentPins.");
+            return code;
+        }
+
+        private const string CrashLogName = "client-crashlog.txt";
+
+        private static string CrashLogPath() =>
+            string.IsNullOrEmpty(Terraria.Program.SavePath) ? CrashLogName : System.IO.Path.Combine(Terraria.Program.SavePath, CrashLogName);
+
         // Resource packs can replace sounds (whose length decides random rolls, see SoundClock), fonts and texts (which
         // place buttons); the game already rejects textures of another size. TAS sessions use the game's own content;
         // the packs stay selected in the configuration.

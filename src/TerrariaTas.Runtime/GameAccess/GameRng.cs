@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using HarmonyLib;
 using Terraria;
 using Terraria.Utilities;
+using TerrariaTas.Core;
 using TerrariaTas.Core.Rng;
 
 namespace TerrariaTas.Runtime.GameAccess;
@@ -76,4 +77,13 @@ internal static class GameRng
         Index(copy) = Index(random);
         return copy;
     }
+
+    /// <summary>
+    /// An independent copy of a stream as the next frame will start drawing from it. A stream the game has not created
+    /// yet (at the movie start there is none) is created from the world seed on its first use: the copy is that stream.
+    /// Call at a frame boundary.
+    /// </summary>
+    [MirrorsGameMethod("Terraria.Main", "SwapRandom")]
+    public static UnifiedRandom CloneForNextFrame(string name) =>
+        Streams.TryGetValue(name, out var stream) ? Clone(stream) : new UnifiedRandom(WorldSeed);
 }
